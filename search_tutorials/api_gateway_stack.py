@@ -82,12 +82,6 @@ class APIGWStack(NestedStack):
         user_pool_client_id = user_pool_client.user_pool_client_id
         user_pool_id = user_pool.user_pool_id
 
-        log_group = _cdk.aws_logs.LogGroup(
-            self,
-            f"ApiGatewayAccessLogs-{env_name}",
-            retention=_cdk.aws_logs.RetentionDays.ONE_WEEK,
-        )
-
         # Define API gateway proxy to lambda
         rest_api = _apigw.RestApi(
             self,
