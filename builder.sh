@@ -15,7 +15,13 @@ then
     echo "Environment name can only be dev or qa or sandbox. example 'sh builder.sh dev' "
     exit 1
 fi
+
 echo "Environment: $infra_env"
+
+echo '*************************************************************'
+echo ' '
+
+deployment_region=$(aws ec2 describe-availability-zones --output text --query 'AvailabilityZones[0].RegionName')
 
 echo '*************************************************************'
 echo ' '
@@ -28,6 +34,9 @@ echo "--- Upgrading npm ---"
 sudo npm install n stable -g
 echo "--- Installing cdk ---"
 sudo npm install -g aws-cdk@2.91.0
+
+echo "--- Bootstrapping CDK on account in region $deployment_region ---"
+cdk bootstrap aws://$(aws sts get-caller-identity --query "Account" --output text)/$deployment_region
 
 cd sample-for-amazon-opensearch-tutorials-101
 echo "--- pip install requirements ---"
