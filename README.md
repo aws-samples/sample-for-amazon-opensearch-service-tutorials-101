@@ -13,7 +13,6 @@ The application provides examples of different search functionalities using Amaz
   - Wildcard Match
   - Range Filter
 - Document Indexing
-- OpenSearch Dashboard Integration
 
 ## Architecture
 ![Architecture](https://github.com/user-attachments/assets/f94f0292-29f6-4cc6-b9a8-dc262e9215f0)
