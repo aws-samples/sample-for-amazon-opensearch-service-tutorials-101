@@ -88,17 +88,6 @@ class APIGWStack(NestedStack):
             retention=_cdk.aws_logs.RetentionDays.ONE_WEEK,
         )
 
-        api_gateway_logging_role = _iam.Role(
-            self,
-            f"ApiGatewayLoggingRole-{env_name}",
-            assumed_by=_iam.ServicePrincipal("apigateway.amazonaws.com"),
-            managed_policies=[
-                _iam.ManagedPolicy.from_aws_managed_policy_name(
-                    "service-role/AmazonAPIGatewayPushToCloudWatchLogs"
-                )
-            ]
-        )
-
         # Define API gateway proxy to lambda
         rest_api = _apigw.RestApi(
             self,
@@ -111,13 +100,11 @@ class APIGWStack(NestedStack):
                 "stage_name": env_name,
                 "throttling_rate_limit": 1000,
                 "description": env_name + " stage deployment",
-                "logging_level": _apigw.MethodLoggingLevel.INFO,
-                "access_log_destination": _apigw.LogGroupLogDestination(log_group),
-                "access_log_format": _apigw.AccessLogFormat.clf(),
                 "throttling_burst_limit": 1000,
             },
             description="Opensearch Proxy",
         )
+
 
         rest_endpoint_url = f"https://{rest_api.rest_api_id}.execute-api.{region}.amazonaws.com/{env_name}/{parent_path}/"
 
@@ -219,6 +206,24 @@ class APIGWStack(NestedStack):
             self,
             "AwsSolutions-IAM4",
             "Basic lambda execution function to push logs to cloudwatch",
+        )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-APIG1",
+            "Logging on API GW is deferred for this PoC",
+        )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-APIG1",
+            "Logging on API GW is deferred for this PoC",
+        )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-APIG6",
+            "Logging on API GW is deferred for this PoC",
         )
 
     def tag_my_stack(self, stack):
