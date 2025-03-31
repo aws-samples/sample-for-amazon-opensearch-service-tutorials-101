@@ -16,7 +16,7 @@ The application provides examples of different search functionalities using Amaz
 - OpenSearch Dashboard Integration
 
 ## Architecture
-[TODO add architecture once on Github]
+![Architecture](https://github.com/user-attachments/assets/f94f0292-29f6-4cc6-b9a8-dc262e9215f0)
 
 The application is built using:
 
@@ -35,24 +35,30 @@ The application is built using:
 - AWS CLI configured with appropriate credentials
 - Docker (for UI builds)
 
-## Infrastructure Setup
+## Deployment Steps
 
-1. Head on to Amazon Cloudshell and clone the repository using the below command:
-[TODO modify GITHUB link once available]
+1. Search for Cloudshell service on the AWS Console and follow the steps below to clone the github repository
+   <img width="1069" alt="Cloudshell-service" src="https://github.com/user-attachments/assets/e3f2b6fa-1dbb-46cc-840f-8fd739aad7fe" />
+
+   
+2. Clone the **sample-for-amazon-opensearch-tutorials-101** repository using the below command:
+   
 ```bash
-git clone https://github.com/aws-samples/serverless-rag-demo.git
+git clone https://github.com/aws-samples/sample-for-amazon-opensearch-tutorials-101.git
 ```
 
-2. Head on to the opensearch folder using the below command
-[TODO add correct project name once its approved]
+3. Head on to the **sample-for-amazon-opensearch-tutorials-101** folder using the below command
+   
 ```bash
-cd opensearch-tutorial
+cd sample-for-amazon-opensearch-tutorials-101
 ```
 
-3. Deploy the infrastructure:
+4. Deploy the infrastructure:
 ```bash
 ./builder.sh dev
 ```
+
+5. Press Enter to confirm deployment
 
 The builder script will:
 - Deploy the Lambda Layer Stack
@@ -119,10 +125,6 @@ The application can be deployed to different environments using the builder scri
 ```
 
 Where `<environment>` can be:
-- dev
+- dev [default]
 - qa
 - sandbox
-
-## License
-
-This project is licensed under the terms specified in the project's LICENSE file.
