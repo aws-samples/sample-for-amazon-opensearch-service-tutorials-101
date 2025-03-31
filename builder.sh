@@ -29,7 +29,7 @@ sudo npm install n stable -g
 echo "--- Installing cdk ---"
 sudo npm install -g aws-cdk@2.91.0
 
-cd opensearch-tutorial
+cd sample-for-amazon-opensearch-tutorials-101
 echo "--- pip install requirements ---"
 python3 -m pip install -r requirements.txt
 

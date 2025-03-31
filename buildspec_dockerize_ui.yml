@@ -18,9 +18,9 @@ phases:
       - sudo apt-get update
       - sudo apt-get install jq
       - echo todo replace with correct github link once available
-      - git clone https://github.com/aws-samples/serverless-rag-demo.git
+      - git clone https://github.com/aws-samples/sample-for-amazon-opensearch-tutorials-101.git
       - ls
-      - cd serverless-rag-demo
+      - cd sample-for-amazon-opensearch-tutorials-101
       - rm -rf artifacts/opensearch-app-ui/src/config.json
       - jq -n --arg region "$region" --arg user_pool_id "$user_pool_id" --arg client_id "$client_id" --arg rest_endpoint_url $rest_endpoint_url '{ region:$region, userPoolId:$user_pool_id, clientId:$client_id, apiUrl:$rest_endpoint_url }' > artifacts/opensearch-app-ui/src/config.json
       - echo Build started on `date`
