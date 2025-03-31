@@ -62,6 +62,11 @@ class OpensearchProxyStack(Stack):
             [vpc], "AwsSolutions-VPC7", "VPC flows logs add to the cost of the project"
         )
 
+        service_linked_role = _iam.CfnServiceLinkedRole(self, "OpenSearchServiceLinkedRole", 
+                                                        aws_service_name="opensearchservice.amazonaws.com",
+                                                        description="Service Linked Role for OpenSearch Service"
+)
+
         # Create the opensearch domain
         domain = _opensearch.Domain(
             self,
@@ -100,6 +105,8 @@ class OpensearchProxyStack(Stack):
                 resources=[domain.domain_arn, f"{domain.domain_arn}/*"],
             )
         )
+
+        domain.node.add_dependency(service_linked_role)
 
         self.suppressor(
             [domain],
