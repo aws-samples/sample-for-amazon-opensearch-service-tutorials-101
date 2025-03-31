@@ -52,10 +52,11 @@ git clone https://github.com/aws-samples/sample-for-amazon-opensearch-tutorials-
 ```bash
 cd sample-for-amazon-opensearch-tutorials-101
 ```
+<img width="1080" alt="git-clone-cloudshell" src="https://github.com/user-attachments/assets/bf7243eb-3388-40f9-894f-76d321ffe9b9" />
 
 4. Deploy the infrastructure:
 ```bash
-./builder.sh dev
+sh builder.sh
 ```
 
 5. Press Enter to confirm deployment
