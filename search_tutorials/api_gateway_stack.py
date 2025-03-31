@@ -88,6 +88,17 @@ class APIGWStack(NestedStack):
             retention=_cdk.aws_logs.RetentionDays.ONE_WEEK,
         )
 
+        api_gateway_logging_role = _iam.Role(
+            self,
+            f"ApiGatewayLoggingRole-{env_name}",
+            assumed_by=_iam.ServicePrincipal("apigateway.amazonaws.com"),
+            managed_policies=[
+                _iam.ManagedPolicy.from_aws_managed_policy_name(
+                    "service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+                )
+            ]
+        )
+
         # Define API gateway proxy to lambda
         rest_api = _apigw.RestApi(
             self,
@@ -95,6 +106,7 @@ class APIGWStack(NestedStack):
             rest_api_name=env_params["api_gateway_name"],
             deploy=True,
             endpoint_types=[_cdk.aws_apigateway.EndpointType.REGIONAL],
+            cloud_watch_role=True,
             deploy_options={
                 "stage_name": env_name,
                 "throttling_rate_limit": 1000,
