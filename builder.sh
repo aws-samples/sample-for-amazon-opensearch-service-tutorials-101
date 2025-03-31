@@ -29,6 +29,20 @@ echo ' '
 printf "$Green Press Enter to proceed with deployment else ctrl+c to cancel $NC "
 read -p " "
 
+# Attempt to create the service-linked role and suppress error output
+if ! aws iam create-service-linked-role --aws-service-name opensearchservice.amazonaws.com 2>/dev/null; then
+    # Check if the error was because the role already exists
+    if aws iam get-role --role-name AWSServiceRoleForAmazonOpenSearchService >/dev/null 2>&1; then
+        echo "Service-linked role already exists. Continuing..."
+    else
+        echo "Error creating service-linked role. Please check your permissions."
+        exit 1
+    fi
+else
+    echo "Service-linked role created successfully."
+fi
+
+
 cd ..
 echo "--- Upgrading npm ---"
 sudo npm install n stable -g
