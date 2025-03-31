@@ -1,0 +1,38 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "OpensearchDomain" [ label = "OpensearchDomain
+(OpenSearchDomain)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "VPC" [ label = "VPC
+(VPC)", shape =rectangle ];
+  "SecurityGroup" [ label = "SecurityGroup
+(SecurityGroup)", shape =rectangle ];
+  "OpensearchProxyLambda" [ label = "OpensearchProxyLambda
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "OpensearchIndexLambda" [ label = "OpensearchIndexLambda
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "OpensearchSearchLambda" [ label = "OpensearchSearchLambda
+(LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "APIGateway" [ label = "APIGateway
+(APIGateway)", shape =rectangle, fillcolor = "#E78F81" ];
+  "AppRunnerService" [ label = "AppRunnerService
+(AppRunnerService)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "ECRRepository" [ label = "ECRRepository
+(ECRRepository)", shape =cylinder, fillcolor = "#FFF5CD" ];
+  "LambdaLayer" [ label = "LambdaLayer
+(LambdaLayer)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "CodeBuildProject" [ label = "CodeBuildProject
+(CodeBuildProject)", shape =rectangle ];
+  "OpensearchDomain" -> "VPC";
+  "OpensearchDomain" -> "SecurityGroup";
+  "OpensearchProxyLambda" -> "VPC";
+  "OpensearchProxyLambda" -> "OpensearchDomain";
+  "OpensearchIndexLambda" -> "VPC";
+  "OpensearchIndexLambda" -> "OpensearchDomain";
+  "OpensearchSearchLambda" -> "VPC";
+  "OpensearchSearchLambda" -> "OpensearchDomain";
+  "APIGateway" -> "OpensearchProxyLambda";
+  "APIGateway" -> "OpensearchIndexLambda";
+  "APIGateway" -> "OpensearchSearchLambda";
+  "AppRunnerService" -> "ECRRepository";
+  "CodeBuildProject" -> "LambdaLayer";
+}
