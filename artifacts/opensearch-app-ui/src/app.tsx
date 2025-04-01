@@ -64,7 +64,7 @@ export default function App() {
           {
             type: "button",
             text: "Github",
-            href: "https://github.com/aws-samples/serverless-rag-demo",
+            href: "https://github.com/aws-samples/sample-for-amazon-opensearch-tutorials-101/",
             external: true,
             externalIconAriaLabel: " (opens in a new tab)"
           },
