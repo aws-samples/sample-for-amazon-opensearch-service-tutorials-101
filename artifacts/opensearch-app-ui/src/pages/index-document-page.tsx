@@ -56,12 +56,13 @@ function IndexDocumentPage(props: AppPage) {
       },
       body: JSON.stringify({})
     }).then(function (result) {
-      handle_notifications("Product catalog indexing started", "success")
+      handle_notifications("Product catalog indexing in-progress. You can now try Keyword search", "success")
       console.log(result)
     }).catch(function (err) {
       handle_notifications("Product catalog indexing failed", "error")
       console.log(err)
     });
+    handle_notifications("Product catalog indexing started", "success")
   }
 
   async function delete_index() {

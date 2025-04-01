@@ -243,7 +243,7 @@ function KeywordMultiPage(props: AppPage) {
           </HelpPanel>
         </ExpandableSection>
 
-        <Grid gridDefinition={[{ colspan: 2 }, { colspan: 2 }, { colspan: 2 }, { colspan: 2 }]}>
+        <Grid gridDefinition={[{ colspan: 2 }, { colspan: 2 }, { colspan: 2 }]}>
           <div>
             <Checkbox onChange={({ detail }) => setSearchByTitle(detail.checked)} checked={searchByTitle}>Title</Checkbox>
             <Slider onChange={({ detail }) => setTitleBoost(detail.value)} value={titleBoost} max={10} min={0} />
@@ -256,10 +256,10 @@ function KeywordMultiPage(props: AppPage) {
             <Checkbox onChange={({ detail }) => setSearchByColor(detail.checked)} checked={searchByColor}>Color</Checkbox>
             <Slider onChange={({ detail }) => setColorBoost(detail.value)} value={colorBoost} max={10} min={0} />
           </div>
-          <div>
+          {/* <div>
             <Checkbox onChange={({ detail }) => setSearchByPrice(detail.checked)} checked={searchByPrice}>Price</Checkbox>
             <Slider onChange={({ detail }) => setPriceBoost(detail.value)} value={priceBoost} max={10} min={0} />
-          </div>
+          </div> */}
 
         </Grid>
         <Grid gridDefinition={[{ colspan: 12 }]}>
