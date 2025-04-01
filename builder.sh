@@ -52,15 +52,17 @@ sudo npm install -g aws-cdk@2.91.0
 echo "--- Bootstrapping CDK on account in region $deployment_region ---"
 cdk bootstrap aws://$(aws sts get-caller-identity --query "Account" --output text)/$deployment_region
 
+CURRENT_UTC_TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+
 cd sample-for-amazon-opensearch-tutorials-101
 echo "--- pip install requirements ---"
 python3 -m pip install -r requirements.txt
 
 echo "--- CDK synthesize ---"
-cdk synth -c environment_name=$infra_env
+cdk synth -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP
 
 echo "--- CDK deploy ---"
-cdk deploy -c environment_name=$infra_env LambdaLayerStack"$infra_env" --require-approval never
+cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP LambdaLayerStack"$infra_env" --require-approval never
 
 echo "--- Get Build Container ---"
 project=lambdaopnsrchbuild"$infra_env"
@@ -96,7 +98,7 @@ done
 
 if [ $build_status = "SUCCEEDED" ]
 then
-    cdk deploy -c environment_name=$infra_env OpensearchProxy"$infra_env" --require-approval never
+    cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP OpensearchProxy"$infra_env" --require-approval never
 else
     echo "Cannot deploy Opensearch stack as lambda_build has failed $build_status"
 fi
@@ -136,7 +138,7 @@ done
 if [ $build_status = "SUCCEEDED" ]
     then
        echo "Host UI on AppRunner..."
-       cdk deploy -c environment_name=$infra_env AppRunnerHosting"$infra_env"Stack --require-approval never
+       cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP AppRunnerHosting"$infra_env"Stack --require-approval never
     else
        echo "Exiting. Build did not succeed."
        exit 1
