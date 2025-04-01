@@ -60,7 +60,20 @@ sh builder.sh
 
 5. Press Enter to confirm deployment
 
-The builder script will:
+6. The deployment takes 30 minutes to create all resources. You can track its progress on Cloudformation
+   <img width="1128" alt="Screenshot 2025-04-01 at 4 55 24 pm" src="https://github.com/user-attachments/assets/7d9df31b-47ba-4554-8730-69ec153dbe2a" />
+
+7. Once done, head to AppRunner to obtain the application url
+    <img width="1037" alt="Screenshot 2025-04-01 at 4 56 45 pm" src="https://github.com/user-attachments/assets/8f4de24f-08e6-42d0-ac7f-b0168d0552d1" />
+
+8. Get started by first creating your account on the Opensearch tutorial Application
+   <img width="1219" alt="Screenshot 2025-04-01 at 5 01 51 pm" src="https://github.com/user-attachments/assets/3929334e-ebb7-4fe7-a4ee-e919bb641035" />
+
+9. To test out Keyword search functionality, first index some products on the Opensearch tutorial application. Every feature is also accompanied by a guide, best practices and links to the Opensearch documentation.
+   <img width="873" alt="Screenshot 2025-04-01 at 4 58 59 pm" src="https://github.com/user-attachments/assets/d11e351e-5549-4871-9616-f6d2b47251a2" />
+
+
+**Note:** The builder script will:
 - Deploy the Lambda Layer Stack
 - Build and deploy the OpenSearch Proxy Stack
 - Build and deploy the UI container
@@ -115,16 +128,3 @@ Infrastructure is defined using AWS CDK in the `search_tutorials/` directory:
 - `lambda_layer_stack.py`: Lambda layers for dependencies
 - `opensearch_proxy_stack.py`: OpenSearch domain and Lambda functions
 - `apprunner_hosting_stack.py`: UI hosting configuration
-
-## Deployment
-
-The application can be deployed to different environments using the builder script:
-
-```bash
-./builder.sh <environment>
-```
-
-Where `<environment>` can be:
-- dev [default]
-- qa
-- sandbox
