@@ -134,8 +134,8 @@ done
 
 if [ $build_status = "SUCCEEDED" ]
     then
-       echo "Host UI on AppRunner..."
-       cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP AppRunnerHosting"$infra_env"Stack --require-approval never
+       echo "Host UI on AppRunner ..."
+       cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP ApprunnerHostingStack"$infra_env" --require-approval never
     else
        echo "Exiting. Build did not succeed."
        exit 1
