@@ -100,7 +100,7 @@ class APIGWStack(NestedStack):
         )
 
 
-        rest_endpoint_url = f"https://{rest_api.rest_api_id}.execute-api.{region}.amazonaws.com/{env_name}/{parent_path}/"
+        rest_endpoint_url = f"https://{rest_api.rest_api_id}.execute-api.{region}.amazonaws.com/{env_name}"
 
         opensearch_index_lambda = _lambda.Function.from_function_arn(
             self, f"{env_name}_opnsrch_indx_lmbda", function_arn=index_func_arn
