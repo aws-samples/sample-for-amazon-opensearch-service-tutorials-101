@@ -17,17 +17,14 @@ then
 fi
 
 echo "Environment: $infra_env"
-
-echo '*************************************************************'
 echo ' '
-
-deployment_region=$(aws ec2 describe-availability-zones --output text --query 'AvailabilityZones[0].RegionName')
-
 echo '*************************************************************'
-echo ' '
-
 printf "$Green Press Enter to proceed with deployment else ctrl+c to cancel $NC "
 read -p " "
+echo '*************************************************************'
+echo ' Starting deployment ... '
+
+deployment_region=$(aws ec2 describe-availability-zones --output text --query 'AvailabilityZones[0].RegionName')
 
 # Attempt to create the service-linked role and suppress error output
 if ! aws iam create-service-linked-role --aws-service-name opensearchservice.amazonaws.com 2>/dev/null; then
