@@ -169,8 +169,8 @@ class APIGWStack(NestedStack):
             authorizer=cognito_authorizer,
         )
 
-        self.add_cors_options(index, cognito_authorizer)
-        self.add_cors_options(search, cognito_authorizer)
+        self.add_cors_options(index)
+        self.add_cors_options(search)
 
         ecr_ui_stack = ECRUIStack(
             self,
@@ -225,7 +225,7 @@ class APIGWStack(NestedStack):
         tags.add("project", "aws-search-tutorials-demo")
 
     def add_cors_options(
-        self, apiResource: _cdk.aws_apigateway.IResource, cognito_authorizer
+        self, apiResource: _cdk.aws_apigateway.IResource
     ):
         apiResource.add_method(
             "OPTIONS",
@@ -255,6 +255,7 @@ class APIGWStack(NestedStack):
                     },
                 }
             ],
+            authorization_type=_cdk.aws_apigateway.AuthorizationType.NONE
         )
 
     def suppressor(self, constructs, id, reason):
