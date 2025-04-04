@@ -88,6 +88,15 @@ The application supports three environments:
 
 Configuration for each environment is managed in `cdk.json`.
 
+## Cleanup
+
+Delete all the deployed resources
+```bash
+cdk destroy
+
+```
+
+
 ## Project Structure
 
 ```
@@ -128,3 +137,4 @@ Infrastructure is defined using AWS CDK in the `search_tutorials/` directory:
 - `lambda_layer_stack.py`: Lambda layers for dependencies
 - `opensearch_proxy_stack.py`: OpenSearch domain and Lambda functions
 - `apprunner_hosting_stack.py`: UI hosting configuration
+
