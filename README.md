@@ -32,7 +32,6 @@ The application is built using:
 - Python 3.10 or later
 - AWS CDK v2.91.0
 - AWS CLI configured with appropriate credentials
-- Docker (for UI builds)
 
 ## Deployment Steps
 
