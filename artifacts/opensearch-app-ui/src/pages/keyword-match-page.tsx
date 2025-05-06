@@ -6,6 +6,13 @@ import Autosuggest from "@cloudscape-design/components/autosuggest";
 import Cards from "@cloudscape-design/components/cards";
 import Box from "@cloudscape-design/components/box";
 import Grid from "@cloudscape-design/components/grid";
+import Alert from "@cloudscape-design/components/alert";
+
+// Add Google Fonts for calligraphy
+const fontLink = document.createElement('link');
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&display=swap';
+fontLink.rel = 'stylesheet';
+document.head.appendChild(fontLink);
 
 
 import {
@@ -31,6 +38,8 @@ function KeywordMatchPage(props: AppPage) {
   const [search_field, setSearchField] = React.useState("title");
   const [minimum_should_match, setMinimumShouldMatch] = React.useState(10);
   const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -43,6 +52,9 @@ function KeywordMatchPage(props: AppPage) {
   }, [])
 
   async function match(search_value: string, mini_shld_match?: number) {
+    // Reset error state
+    setError("");
+    
     if (mini_shld_match && mini_shld_match > 0) {
       setMinimumShouldMatch(mini_shld_match)
     } else {
@@ -56,6 +68,9 @@ function KeywordMatchPage(props: AppPage) {
       search_value = value
     }
     setValue(search_value);
+    
+    // Set loading state
+    setLoading(true);
     
     const token = appData.userinfo.tokens.idToken.toString();
     // call api gateway and pass in the value and set Authorization header
@@ -77,6 +92,7 @@ function KeywordMatchPage(props: AppPage) {
     if (response.ok) {
       // read the response body
       const resp = await response.json();
+      console.log("Search response:", resp); // Debug log to see the full response
       const arr = resp['result']['hits']['hits']
 
       // set the value of the input box to the first result
@@ -88,15 +104,33 @@ function KeywordMatchPage(props: AppPage) {
         const title = source['title']
         // add to suggestions
         suggestns.push({ value: title })
+        
+        // Debug log for each item
+        console.log(`Item ${i} image_url:`, source['image_url']);
+        
+        // If image_url is not available, construct a placeholder URL
+        const imageUrl = source['image_url'] || 
+          `https://via.placeholder.com/800x400?text=${encodeURIComponent(title)}`;
+        
         itms.push({
           name: title,
           description: source['description'],
           color: source['color'],
-          price: "$" + source['price']
+          price: "$" + (source['price'] / 100).toFixed(2), // Convert cents to dollars with 2 decimal places
+          image_url: imageUrl,
+          file_name: source['file_name'] // Keep the original file_name for reference
         })
       }
       setItems(itms)
+    } else {
+      // Handle error response
+      const errorText = await response.text();
+      console.error("Search API error:", response.status, errorText);
+      setError(`Error fetching search results: ${response.status} ${response.statusText}`);
     }
+    
+    // End loading state
+    setLoading(false);
   }
 
   return (
@@ -114,7 +148,7 @@ function KeywordMatchPage(props: AppPage) {
     >
       <Container fitHeight
       >
-        <ExpandableSection headerText="Guide to Match Search">
+        <ExpandableSection headerText="Guide to Minimum-Should-Match Search">
                   <HelpPanel
                     footer={
                       <div>
@@ -198,18 +232,54 @@ function KeywordMatchPage(props: AppPage) {
             empty="No matches found"
           />
 
-          <Cards cardDefinition={{
+          <Cards 
+            loading={loading}
+            cardDefinition={{
             header: item => (
-              <Link href="#" fontSize="heading-m">
-                {item.name}
-              </Link>
+              <div>
+                <Link fontSize="heading-m">
+                  {item.name}
+                </Link>
+                
+                <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
+                
+                <div 
+                  style={{ 
+                    marginTop: '20px', 
+                    marginBottom: '10px',
+                    fontFamily: "'Tangerine', 'Brush Script MT', cursive",
+                    fontSize: '1.5rem',
+                    lineHeight: '1.6',
+                    color: '#333',
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                    padding: '10px',
+                    background: 'linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
+                    borderRadius: '8px',
+                    maxHeight: '200px',
+                    overflow: 'auto'
+                  }}
+                >
+                  {item.description}
+                </div>
+                <div>
+                  <img 
+                    src={item.image_url} 
+                    alt={item.name}
+                    style={{ 
+                      maxWidth: '20vw', 
+                      maxHeight: '20vh', 
+                      objectFit: 'contain'
+                    }}
+                    onError={(e) => {
+                      console.error("Image failed to load:", item.image_url);
+                      e.currentTarget.src = "https://via.placeholder.com/300x200?text=Image+Not+Available";
+                    }}
+                  />
+                </div>
+                </Grid>
+              </div>
             ),
             sections: [
-              {
-                id: "description",
-                header: "Description",
-                content: item => item.description
-              },
               {
                 id: "color",
                 header: "Color",
@@ -228,7 +298,7 @@ function KeywordMatchPage(props: AppPage) {
             ]}
             items={items}
             loadingText="Loading products"
-            visibleSections={["title", "description", "color", "price"]}
+            visibleSections={["description", "color", "price"]}
             empty={
               <Box
                 margin={{ vertical: "xs" }}

@@ -11,6 +11,7 @@ from aws_cdk import (
     aws_apigateway as _apigw,
     aws_cognito as _cognito,
     NestedStack,
+    aws_s3 as _s3
 )
 import aws_cdk as cdk
 from constructs import Construct
@@ -70,8 +71,7 @@ class APIGWStack(NestedStack):
             auth_flows=_cognito.AuthFlow(user_password=True, user_srp=True),
             id_token_validity=_cdk.Duration.days(1),
         )
-        # create an api gateway authorizer with the cognito user pool above
-        # create an api gateway authorizer with the cognito user pool above
+        
         cognito_authorizer = _cdk.aws_apigateway.CognitoUserPoolsAuthorizer(
             self,
             f"opnsrch-cgnto-authrzr-{env_name}",
@@ -128,6 +128,25 @@ class APIGWStack(NestedStack):
             authorizer=cognito_authorizer,
         )
 
+        index_custom_doc =rest_api.root.add_resource("index-custom-document")
+        index_custom_doc.add_method(
+            "POST",
+            _apigw.LambdaIntegration(opensearch_index_lambda),
+            authorization_type=_apigw.AuthorizationType.COGNITO,
+            authorization_scopes=None,
+            authorizer=cognito_authorizer,
+        )
+
+        # Add presigned URL endpoint
+        presigned_url = rest_api.root.add_resource("presigned-url")
+        presigned_url.add_method(
+            "POST",
+            _apigw.LambdaIntegration(opensearch_index_lambda),
+            authorization_type=_apigw.AuthorizationType.COGNITO,
+            authorization_scopes=None,
+            authorizer=cognito_authorizer,
+        )
+
         # Workarond: Imported lambda's dont retain resource policies, creating it here manually
         # https://github.com/aws/aws-cdk/issues/7588
         _lambda.CfnPermission(
@@ -139,6 +158,16 @@ class APIGWStack(NestedStack):
             source_arn=f"arn:aws:execute-api:{region}:{account_id}:{rest_api.rest_api_id}/*/POST/index",
             source_account=account_id,
         )
+        
+        _lambda.CfnPermission(
+            self,
+            f"ICustomDocAllowLambdaInvoke",
+            action="lambda:InvokeFunction",
+            function_name=opensearch_index_lambda.function_name,
+            principal="apigateway.amazonaws.com",
+            source_arn=f"arn:aws:execute-api:{region}:{account_id}:{rest_api.rest_api_id}/*/POST/index-custom-document",
+            source_account=account_id,
+        )
 
         _lambda.CfnPermission(
             self,
@@ -147,6 +176,16 @@ class APIGWStack(NestedStack):
             function_name=opensearch_index_lambda.function_name,
             principal="apigateway.amazonaws.com",
             source_arn=f"arn:aws:execute-api:{region}:{account_id}:{rest_api.rest_api_id}/*/DELETE/index",
+            source_account=account_id,
+        )
+
+        _lambda.CfnPermission(
+            self,
+            f"PPresignedAllowLambdaInvoke",
+            action="lambda:InvokeFunction",
+            function_name=opensearch_index_lambda.function_name,
+            principal="apigateway.amazonaws.com",
+            source_arn=f"arn:aws:execute-api:{region}:{account_id}:{rest_api.rest_api_id}/*/POST/presigned-url",
             source_account=account_id,
         )
 
@@ -171,6 +210,8 @@ class APIGWStack(NestedStack):
 
         self.add_cors_options(index)
         self.add_cors_options(search)
+        self.add_cors_options(presigned_url)
+        self.add_cors_options(index_custom_doc)
 
         ecr_ui_stack = ECRUIStack(
             self,
@@ -180,6 +221,44 @@ class APIGWStack(NestedStack):
             rest_endpoint_url,
         )
         self.tag_my_stack(ecr_ui_stack)
+        
+                # Create an S3 bucket
+        s3_bucket = _s3.Bucket(
+            self,
+            f"opnsrch-s3-bucket-{env_name}",
+            bucket_name=f"{env_params['product_catalog_s3_bucket']}-{account_id}-{region}",
+            removal_policy=_cdk.RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+            versioned=True,
+            encryption=_s3.BucketEncryption.S3_MANAGED,
+            block_public_access=_s3.BlockPublicAccess.BLOCK_ALL,
+        )
+        
+        # Add bucket policy to enforce HTTPS connections (fix for AwsSolutions-S10)
+        s3_bucket.add_to_resource_policy(
+            _iam.PolicyStatement(
+                sid="DenyHTTPRequests",
+                effect=_iam.Effect.DENY,
+                principals=[_iam.AnyPrincipal()],
+                actions=["s3:*"],
+                resources=[
+                    s3_bucket.bucket_arn,
+                    f"{s3_bucket.bucket_arn}/*"
+                ],
+                conditions={
+                    "Bool": {
+                        "aws:SecureTransport": "false"
+                    }
+                }
+            )
+        )
+        
+        # Add suppressions for S3 bucket
+        self.suppressor(
+            [s3_bucket],
+            "AwsSolutions-S1",
+            "Logging is deferred as this is a development/POC environment focusing on core functionality validation",
+        )
 
         self.suppressor(
             [rest_api],

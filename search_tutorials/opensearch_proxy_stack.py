@@ -27,6 +27,7 @@ class OpensearchProxyStack(Stack):
         region = os.getenv("CDK_DEFAULT_REGION")
         env_params = self.node.try_get_context(env_name)
         parent_path = "search-tutorials"
+        bucket_name = f"{env_params['product_catalog_s3_bucket']}-{account_id}-{region}"
         # Define a private Opensearch cluster
         vpc = _ec2.Vpc(
             self,
@@ -129,6 +130,20 @@ class OpensearchProxyStack(Stack):
                 )
             ],
         )
+
+        #custom_lambda_role should have access to S3 bucket 
+        custom_lambda_role.add_to_policy(
+            _iam.PolicyStatement(
+                actions=['s3:PutObject',
+                    's3:GetObject',
+                    's3:GeneratePresignedUrl'],
+                resources=[
+                    f"arn:aws:s3:::{bucket_name}",
+                    f"arn:aws:s3:::{bucket_name}/*"
+                ]
+            )
+        )
+
         self.stack_suppressor(
             self,
             "AwsSolutions-IAM4",
@@ -162,7 +177,7 @@ class OpensearchProxyStack(Stack):
             memory_size=3000,
             layers=[opensearch_utils_layer],
             vpc=vpc,
-            environment={"OPENSEARCH_HOST": domain.domain_endpoint},
+            environment={"OPENSEARCH_HOST": domain.domain_endpoint, "S3_BUCKET_NAME": bucket_name},
         )
 
         opensearch_search_lambda = _lambda.Function(
@@ -180,7 +195,7 @@ class OpensearchProxyStack(Stack):
             memory_size=3000,
             layers=[opensearch_utils_layer],
             vpc=vpc,
-            environment={"OPENSEARCH_HOST": domain.domain_endpoint},
+            environment={"OPENSEARCH_HOST": domain.domain_endpoint, "S3_BUCKET_NAME": bucket_name},
         )
 
         opensearch_access_policy_1 = _iam.PolicyStatement(

@@ -7,6 +7,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection
 from os import getenv
 import logging
 import uuid
+from datetime import datetime, timedelta
 
 LOG = logging.getLogger()
 LOG.setLevel(logging.INFO)
@@ -15,6 +16,7 @@ credentials = boto3.Session().get_credentials()
 ENDPOINT = getenv("OPENSEARCH_HOST", "default")
 SERVICE = "es"  # aoss for Amazon Opensearch serverless
 REGION = getenv("REGION", "us-east-1")
+S3_BUCKET = getenv("S3_BUCKET_NAME", "default")
 awsauth = AWS4Auth(
     credentials.access_key,
     credentials.secret_key,
@@ -31,6 +33,48 @@ ops_client = OpenSearch(
     connection_class=RequestsHttpConnection,
     timeout=300,
 )
+
+s3_client = boto3.client('s3')
+
+def generate_presigned_url(event):
+    """
+    Generates a presigned URL for uploading a file to S3.
+    
+    Args:
+        event (dict): Event object containing filename and content_type
+        
+    Returns:
+        dict: Response object containing the presigned URL and the S3 key
+    """
+    try:
+        body = json.loads(event.get('body', '{}'))
+        filename = body.get('filename')
+        content_type = body.get('contentType')
+        
+        if not filename or not content_type:
+            return failure_response("Filename and content type are required")
+            
+        # Generate a unique key for the file
+        key = f"images/{uuid.uuid4()}_{filename}"
+        
+        # Generate presigned URL
+        presigned_url = s3_client.generate_presigned_url(
+            'put_object',
+            Params={
+                'Bucket': S3_BUCKET,
+                'Key': key,
+                'ContentType': content_type
+            },
+            ExpiresIn=3600  # URL expires in 1 hour
+        )
+        
+        return success_response({
+            "url": presigned_url,
+            "key": key
+        })
+    except Exception as e:
+        LOG.error(f"Error generating presigned URL: {str(e)}")
+        return failure_response(f"Error generating presigned URL: {str(e)}")
 
 
 def bulk_index_documents(documents):
@@ -91,6 +135,26 @@ def index_products(event):
         return {"statusCode": "500", "message": err_msg}
 
 
+def index_custom_document(event):
+    """
+    Indexes a single custom document into OpenSearch.
+    
+    Args:
+        event (dict): Event object containing the document to index
+        
+    Returns:
+        dict: Response object indicating success or failure
+    """
+    try:
+        body = json.loads(event.get('body', '[]'))
+        if not isinstance(body, list):
+            body = [body]
+        return bulk_index_documents(body)
+    except Exception as e:
+        LOG.error(f"Error indexing custom document: {str(e)}")
+        return failure_response(f"Error indexing custom document: {str(e)}")
+
+
 def delete_index(event):
     """
     Deletes the OpenSearch index specified by INDEX_NAME.
@@ -116,7 +180,9 @@ def handler(event, context):
     if "httpMethod" in event:
         api_map = {
             "POST/index": lambda x: index_products(x),
+            "POST/index-custom-document": lambda x: index_custom_document(x),
             "DELETE/index": lambda x: delete_index(x),
+            "POST/presigned-url": lambda x: generate_presigned_url(x),
         }
 
         http_method = event["httpMethod"] if "httpMethod" in event else ""
