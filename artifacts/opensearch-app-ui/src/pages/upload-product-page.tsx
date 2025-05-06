@@ -1,5 +1,19 @@
 import { useState, useEffect, useContext } from "react";
-import { Container, Header, Form, FormField, Input, Button, SpaceBetween, Alert } from '@cloudscape-design/components';
+import { 
+  Container, 
+  Header, 
+  Form, 
+  FormField, 
+  Input, 
+  Button, 
+  SpaceBetween, 
+  Alert,
+  ContentLayout,
+  ExpandableSection,
+  HelpPanel,
+  Icon
+} from '@cloudscape-design/components';
+import { AuthHelper } from "../common/helpers/auth-help";
 import axios from 'axios';
 import { AppContext } from "../common/context";
 import config from "../config.json";
@@ -27,16 +41,36 @@ export default function UploadProductPage(props: AppPage) {
   const [success, setSuccess] = useState<string | null>(null);
   const [fileList, setFileList] = useState<File[]>([]);
 
+  useEffect(() => {
+    const init = async () => {
+      let userdata = await AuthHelper.getUserDetails();
+      props.setAppData({
+        userinfo: userdata
+      })
+    }
+    init();
+  }, [])
+
+  function build_form_data(result, formdata) {
+    if ('fields' in result) {
+      for (var key in result['fields']) {
+        formdata.append(key, result['fields'][key])
+      }
+    }
+    return formdata
+  }
+
   const handleSubmit = async () => {
     try {
       setUploading(true);
       setError(null);
       setSuccess(null);
       const token = appData.userinfo.tokens.idToken.toString();
-
+      // remove special characters from the filename
+      const filename = fileList[0]?.name.replace(/[^a-zA-Z0-9]/g, '');
       // 1. Get presigned URL
       const presignedUrlResponse = await axios.post(config["apiUrl"] + "/presigned-url", {
-        filename: fileList[0]?.name,
+        filename: filename,
         contentType: fileList[0]?.type,
       }, {
         headers: {
@@ -45,8 +79,13 @@ export default function UploadProductPage(props: AppPage) {
         }
       });
 
+      const formData1 = new FormData();
+      build_form_data(presignedUrlResponse.data.result, formData1);
+      formData1.append('file', fileList[0]);
+      
+
       // 2. Upload image to S3
-      await axios.post(presignedUrlResponse.data.result.url, fileList[0])
+      await axios.post(presignedUrlResponse.data.result.url, formData1)
 
       // 3. Index product metadata
       const productData = {
@@ -82,10 +121,57 @@ export default function UploadProductPage(props: AppPage) {
   };
 
   return (
-    <Container header={<Header variant="h1">Upload New Product</Header>}>
-      <SpaceBetween size="l">
-        {error && <Alert type="error">{error}</Alert>}
-        {success && <Alert type="success">{success}</Alert>}
+    <ContentLayout
+      defaultPadding
+      headerVariant="high-contrast"
+      header={
+        <Header
+          variant="h1"
+          description="Add products to your catalog"
+          actions={<Button iconName="settings" variant="icon" />}>
+          Upload New Product
+        </Header>
+      }
+    >
+      <Container fitHeight>
+        <ExpandableSection headerText="Guide to Product Uploads">
+          <HelpPanel
+            footer={
+              <div>
+                <h3>
+                  Learn more{" "}
+                  <Icon name="external" size="inherit" />
+                </h3>
+                <ul>
+                  <li>
+                    <a href="https://opensearch.org/docs/latest/opensearch/index-data/">OpenSearch Indexing Documentation</a>
+                  </li>
+                </ul>
+              </div>
+            }
+          >
+            <div>
+              <p>
+                The <b>Upload Product</b> feature allows you to index new products to your catalog by providing product details and an image.
+                When you upload a product, the following happens:
+              </p>
+              <ol>
+                <li>The product image is uploaded to an S3 bucket</li>
+                <li>The product metadata is indexed in OpenSearch</li>
+                <li>The product becomes searchable through the search interfaces</li>
+              </ol>
+              <h4>Best Practices</h4>
+              <ul>
+                <li>Use descriptive product names and detailed descriptions for better search results</li>
+                <li>Include accurate category and color information to improve filtering</li>
+              </ul>
+            </div>
+          </HelpPanel>
+        </ExpandableSection>
+        
+        <SpaceBetween size="l">
+          {error && <Alert type="error">{error}</Alert>}
+          {success && <Alert type="success">{success}</Alert>}
         
         <Form
           actions={
@@ -170,6 +256,7 @@ export default function UploadProductPage(props: AppPage) {
           </SpaceBetween>
         </Form>
       </SpaceBetween>
-    </Container>
+      </Container>
+    </ContentLayout>
   );
 } 

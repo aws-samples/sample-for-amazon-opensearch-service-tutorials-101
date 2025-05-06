@@ -270,6 +270,6 @@ def handler(event, context):
             else:
                 LOG.info(f"error=api_not_found , api={api_path}")
                 return respond(failure_response("api_not_supported"), None)
-        except Exception:
-            LOG.exception(f"error=error_processing_api, api={api_path}")
-            return respond(failure_response("system_exception"), None)
+        except Exception as e:
+            LOG.exception(f"error=error_processing_api, api={api_path} , error={e}")
+            return respond(failure_response(f"system_exception: {e}"), None)
