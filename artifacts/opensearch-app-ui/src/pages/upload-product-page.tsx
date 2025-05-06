@@ -94,7 +94,7 @@ export default function UploadProductPage(props: AppPage) {
         price: parseFloat(formData.price),
         category: formData.category,
         color: formData.color,
-        file_name: presignedUrlResponse.data.result.key.split('/')[1]
+        file_name: presignedUrlResponse.data.result['fields'].key.split('/')[1]
       };
 
       await axios.post(config["apiUrl"] + '/index-custom-document', [productData], {
@@ -110,8 +110,10 @@ export default function UploadProductPage(props: AppPage) {
         description: '',
         price: '',
         category: '',
-        color: ''
+        color: '',
+        
       });
+      setFileList([]);
     } catch (err) {
       setError('Failed to upload product. Please try again.');
       console.error(err);

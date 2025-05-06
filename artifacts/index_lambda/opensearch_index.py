@@ -58,8 +58,7 @@ def generate_presigned_url(event):
         key = f"images/{uuid.uuid4()}_{filename}"
         
         # Generate presigned URL
-        result = s3_client.generate_presigned_post(Bucket=S3_BUCKET, Key=key
-                                                          , Fields={'Expires': 3600, 'Content-Type': content_type})
+        result = s3_client.generate_presigned_post(Bucket=S3_BUCKET, Key=key)
         
         
         return success_response(result)
