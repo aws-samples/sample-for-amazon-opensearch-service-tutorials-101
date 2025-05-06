@@ -3,3 +3,4 @@ cdk.out
 **/__pycache__/**
 tests/
 .venv
+cdk.context.json

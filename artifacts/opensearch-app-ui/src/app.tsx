@@ -12,6 +12,7 @@ import KeywordPrefixPage from "./pages/keyword-prefix-page";
 import KeywordRangePage from "./pages/keyword-range-page";
 import IndexDocumentPage from "./pages/index-document-page";
 import KeywordWildcardPage from "./pages/keyword-wildcard-page";
+import UploadProductPage from "./pages/upload-product-page";
 
 export default function App() {
   const [activeHref, setActiveHref] = useState("#/");
@@ -21,8 +22,6 @@ export default function App() {
 
   useEffect(() => {
     Hub.listen("auth", (data) => {
-      // setNotificationVisible(true);
-      // setNotificationMsg("Validating Authentication")
       switch (data.payload.event) {
         case "signedOut":
           setAppData({ userinfo: null })
@@ -79,12 +78,6 @@ export default function App() {
           <Router>
             <Routes>
               <Route path="/" element={<Help setPageId="home" />} />
-              <Route path="/document-chat" element={<Help setPageId="doc-chat" />} />
-              <Route path="/document-chat/manage-document" element={<Help setPageId="doc-chat-manage" />} />
-              <Route path="/sentiment-analysis" element={<Help setPageId="sentiment" />} />
-              <Route path="/multi-agent" element={<Help setPageId="multi-agent" />} />
-              <Route path="/ocr" element={<Help setPageId="ocr" />} />
-              <Route path="/pii" element={<Help setPageId="pii" />} />
               <Route path="*" element={<Help setPageId="404" />} />
             </Routes>
           </Router>
@@ -99,7 +92,13 @@ export default function App() {
             }
           }}
           items={[
-            { type: "link", text: "Index Documents", href: "#/index-documents" },
+            {
+              type: "link-group", text: "Index Documents", href: "#",
+              items: [
+                { type: "link", text: "Bulk Index Product Catalog", href: "#/index-documents" },
+                { type: "link", text: "Upload Custom Product", href: "#/upload-product" },
+              ]
+            },            
             {
               type: "link-group", text: "Keyword Search", href: "#",
               items: [
@@ -119,6 +118,7 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               {/* <Route path="/opensearch-dashboard" element={<OpensearchDashboardPage setAppData={setAppData} />} /> */}
               <Route path="/index-documents" element={<IndexDocumentPage setAppData={setAppData} />} />
+              <Route path="/upload-product" element={<UploadProductPage setAppData={setAppData} />} />
               <Route path="/keyword-search/prefix-match" element={<KeywordPrefixPage setAppData={setAppData} />} />
               <Route path="/keyword-search/minimum-should-match" element={<KeywordMatchPage setAppData={setAppData} />} />
               <Route path="/keyword-search/multi-match" element={<KeywordMultiPage setAppData={setAppData} />} />

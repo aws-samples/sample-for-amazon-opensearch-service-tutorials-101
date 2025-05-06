@@ -54,6 +54,7 @@
 
     "dev": {
       "opensearch_domain_name": "dev-opensearch-domain",
+      "product_catalog_s3_bucket": "dev-prdct-ctlg",
       "vpc_name": "dev-opensearch-demo-vpc",
       "opensearch_demo_sg_name": "dev-opensearch-demo-sg",
       "opensearch_instance_type": "t3.small.search",
@@ -74,6 +75,7 @@
     },
     "sandbox": {
       "opensearch_domain_name": "sandbox-opensearch-domain",
+      "product_catalog_s3_bucket": "sndbx-prdct-ctlg",
       "vpc_name": "sandbox-opensearch-demo-vpc",
       "opensearch_demo_sg_name": "sandbox-opensearch-demo-sg",
       "opensearch_instance_type": "m6g.large.search",
@@ -94,6 +96,7 @@
     },
     "prod": {
       "opensearch_domain_name": "prod-opensearch-domain",
+      "product_catalog_s3_bucket": "prd-prdct-ctlg",
       "vpc_name": "prod-opensearch-demo-vpc",
       "opensearch_demo_sg_name": "prod-opensearch-demo-sg",
       "opensearch_instance_type": "r6g.large.search",

@@ -7,6 +7,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection
 from os import getenv
 import logging
 import uuid
+from botocore.exceptions import ClientError
 
 LOG = logging.getLogger()
 LOG.setLevel(logging.INFO)
@@ -14,7 +15,8 @@ credentials = boto3.Session().get_credentials()
 
 ENDPOINT = getenv("OPENSEARCH_HOST", "default")
 SERVICE = "es"  # aoss for Amazon Opensearch serverless
-REGION = getenv("REGION", "us-east-1")
+REGION = getenv("AWS_REGION", "us-east-1")
+S3_BUCKET_NAME = getenv("S3_BUCKET_NAME")
 awsauth = AWS4Auth(
     credentials.access_key,
     credentials.secret_key,
@@ -23,6 +25,9 @@ awsauth = AWS4Auth(
     session_token=credentials.token,
 )
 INDEX_NAME = getenv("INDEX_NAME", "products")
+
+# Initialize S3 client
+s3_client = boto3.client('s3', region_name=REGION)
 ops_client = OpenSearch(
     hosts=[{"host": ENDPOINT, "port": 443}],
     http_auth=awsauth,
@@ -164,6 +169,12 @@ def search_products(event):
             search_body = {"query": {"match_all": {}}}
 
         response = ops_client.search(index=INDEX_NAME, body=search_body)
+        # Add presigned URLs to search results before returning
+        try:
+            if 'hits' in response:
+                response = add_presigned_urls_to_results(response)
+        except Exception as e:
+            LOG.error(f"Error adding presigned URLs to search results: {e}")
         return success_response(response)
     return failure_response("Invalid request")
 
@@ -171,6 +182,48 @@ def search_products(event):
 def failure_response(error_message, statusCode="500"):
     return {"success": False, "errorMessage": error_message, "statusCode": statusCode}
 
+
+def generate_presigned_url(file_name, expiration=3600):
+    """
+    Generate a presigned URL for an S3 object
+    
+    :param file_name: Name of the file in S3 bucket
+    :param expiration: Time in seconds for the presigned URL to remain valid
+    :return: Presigned URL as string or None if error occurs
+    """
+    try:
+        if not S3_BUCKET_NAME:
+            LOG.error("S3_BUCKET_NAME environment variable is not set")
+            return None
+            
+        # Assuming images are stored in an 'images/' prefix
+        object_key = f"images/{file_name}"
+        
+        response = s3_client.generate_presigned_url('get_object',
+                                                   Params={'Bucket': S3_BUCKET_NAME,
+                                                           'Key': object_key},
+                                                   ExpiresIn=expiration)
+        return response
+    except ClientError as e:
+        LOG.error(f"Error generating presigned URL for {file_name}: {e}")
+        return None
+
+def add_presigned_urls_to_results(search_results):
+    """
+    Add presigned URLs to search results for each hit that has a file_name
+    
+    :param search_results: OpenSearch search results
+    :return: Modified search results with presigned URLs
+    """
+    if 'hits' in search_results and 'hits' in search_results['hits']:
+        for hit in search_results['hits']['hits']:
+            if '_source' in hit and 'file_name' in hit['_source']:
+                file_name = hit['_source']['file_name']
+                presigned_url = generate_presigned_url(file_name)
+                if presigned_url:
+                    hit['_source']['image_url'] = presigned_url
+    
+    return search_results
 
 def success_response(result):
     return {"success": True, "result": result, "statusCode": "200"}

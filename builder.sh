@@ -3,6 +3,9 @@ Green='\033[0;32m'
 Red='\033[0;31m'
 NC='\033[0m'
 
+# Get account ID
+account_id=$(aws sts get-caller-identity --query "Account" --output text)
+
 if [ -z "$1" ]
 then
     infra_env='dev'
@@ -141,5 +144,29 @@ if [ $build_status = "SUCCEEDED" ]
        exit 1
 fi
 
-echo "Deployment Complete"
+# Upload images to S3 bucket
+echo "Uploading product images to S3 bucket..."
+
+# Get bucket name from cdk.json based on environment
+bucket_prefix=$(cat cdk.json | jq -r ".context.$infra_env.product_catalog_s3_bucket")
+# Construct the full bucket name
+bucket_name="${bucket_prefix}-${account_id}-${deployment_region}"
+echo "Target S3 bucket: $bucket_name"
+
+# Check if bucket exists
+if aws s3api head-bucket --bucket "$bucket_name" 2>/dev/null; then
+    echo "S3 bucket exists, uploading images..."
     
+    # Upload all images from artifacts/data directory
+    aws s3 cp artifacts/data/ s3://$bucket_name/images/ --recursive
+    
+    if [ $? -eq 0 ]; then
+        echo "Images uploaded successfully to s3://$bucket_name/images/"
+    else
+        echo "Error uploading images to S3 bucket"
+    fi
+else
+    echo "Error: S3 bucket $bucket_name does not exist"
+fi
+
+echo "Deployment Complete"
