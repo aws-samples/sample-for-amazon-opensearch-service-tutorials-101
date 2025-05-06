@@ -40,6 +40,10 @@ function KeywordMatchPage(props: AppPage) {
   const [items, setItems] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [showAlert, setShowAlert] = React.useState(false)
+  const [alertMsg, setAlertMsg] = React.useState("")
+  const [alertType, setAlertType] = React.useState("error")
+
 
   useEffect(() => {
     const init = async () => {
@@ -50,6 +54,12 @@ function KeywordMatchPage(props: AppPage) {
     }
     init();
   }, [])
+
+  const handle_notifications = (message, notify_type) => {
+    setAlertMsg(message)
+    setAlertType(notify_type)
+    setShowAlert(true)
+  }
 
   async function match(search_value: string, mini_shld_match?: number) {
     // Reset error state
@@ -125,10 +135,15 @@ function KeywordMatchPage(props: AppPage) {
     } else {
       // Handle error response
       const errorText = await response.text();
+      if (errorText.includes('index_not_found_exception')) {
+        handle_notifications("Index not found, please index the product catalog first", "error")
+      } else {
+        handle_notifications(errorText, "error")
+      }
       console.error("Search API error:", response.status, errorText);
       setError(`Error fetching search results: ${response.status} ${response.statusText}`);
+      
     }
-    
     // End loading state
     setLoading(false);
   }
@@ -148,6 +163,11 @@ function KeywordMatchPage(props: AppPage) {
     >
       <Container fitHeight
       >
+        {(showAlert && alertType == 'error') ? <Alert dismissible statusIconAriaLabel="Error" type='error' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        {(showAlert && alertType == 'success') ? <Alert dismissible statusIconAriaLabel="Success" type='success' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        {(showAlert && alertType == 'warning') ? <Alert dismissible statusIconAriaLabel="Warning" type='warning' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        {(showAlert && alertType == 'info') ? <Alert dismissible statusIconAriaLabel="Info" type='info' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+      
         <ExpandableSection headerText="Guide to Minimum-Should-Match Search">
                   <HelpPanel
                     footer={

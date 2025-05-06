@@ -43,6 +43,10 @@ function KeywordMultiPage(props: AppPage) {
   
   const [suggestions, setSuggestions] = React.useState([{}]);
   const [items, setItems] = React.useState([]);
+  const [showAlert, setShowAlert] = React.useState(false)
+  const [alertMsg, setAlertMsg] = React.useState("")
+  const [alertType, setAlertType] = React.useState("error")
+
   const SafeHtml = ({ html }: { html: string }) => {
     return <span dangerouslySetInnerHTML={{ __html: html }} />;
   };
@@ -85,6 +89,12 @@ function KeywordMultiPage(props: AppPage) {
     result += text.slice(lastIndex);
     
     return result;
+  }
+
+  const handle_notifications = (message, notify_type) => {
+    setAlertMsg(message)
+    setAlertType(notify_type)
+    setShowAlert(true)
   }
 
 
@@ -175,6 +185,8 @@ function KeywordMultiPage(props: AppPage) {
       }
 
 
+    } else {
+      handle_notifications("Index not found, please index the product catalog first", "error")
     }
 
   }
@@ -194,7 +206,11 @@ function KeywordMultiPage(props: AppPage) {
     >
       <Container fitHeight
       >
-
+        {(showAlert && alertType == 'error') ? <Alert dismissible statusIconAriaLabel="Error" type='error' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        {(showAlert && alertType == 'success') ? <Alert dismissible statusIconAriaLabel="Success" type='success' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        {(showAlert && alertType == 'warning') ? <Alert dismissible statusIconAriaLabel="Warning" type='warning' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        {(showAlert && alertType == 'info') ? <Alert dismissible statusIconAriaLabel="Info" type='info' onDismiss={() => setShowAlert(false)}>{alertMsg}</Alert> : ""}
+        
         <ExpandableSection headerText="Guide to Multi Match Search">
           <HelpPanel
             footer={

@@ -232,6 +232,15 @@ class APIGWStack(NestedStack):
             versioned=True,
             encryption=_s3.BucketEncryption.S3_MANAGED,
             block_public_access=_s3.BlockPublicAccess.BLOCK_ALL,
+            cors=[
+                _s3.CorsRule(
+                    allowed_methods=[_s3.HttpMethods.GET, _s3.HttpMethods.PUT, _s3.HttpMethods.POST],
+                    allowed_origins=["*"],  # In production, replace with specific origins
+                    allowed_headers=["*"],
+                    exposed_headers=["ETag"],
+                    max_age=3000
+                )
+            ]
         )
         
         # Add bucket policy to enforce HTTPS connections (fix for AwsSolutions-S10)

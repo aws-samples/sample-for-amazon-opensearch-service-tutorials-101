@@ -58,20 +58,11 @@ def generate_presigned_url(event):
         key = f"images/{uuid.uuid4()}_{filename}"
         
         # Generate presigned URL
-        presigned_url = s3_client.generate_presigned_url(
-            'put_object',
-            Params={
-                'Bucket': S3_BUCKET,
-                'Key': key,
-                'ContentType': content_type
-            },
-            ExpiresIn=3600  # URL expires in 1 hour
-        )
+        result = s3_client.generate_presigned_post(Bucket=S3_BUCKET, Key=key
+                                                          , Fields={'Expires': 3600, 'Content-Type': content_type})
         
-        return success_response({
-            "url": presigned_url,
-            "key": key
-        })
+        
+        return success_response(result)
     except Exception as e:
         LOG.error(f"Error generating presigned URL: {str(e)}")
         return failure_response(f"Error generating presigned URL: {str(e)}")
