@@ -19,7 +19,8 @@ import {
   ExpandableSection,
   Select,
   Slider,
-  Alert
+  Alert,
+  Input
 } from "@cloudscape-design/components";
 
 import { AuthHelper } from "../common/helpers/auth-help";
@@ -109,13 +110,15 @@ function KeywordMultiPage(props: AppPage) {
   //   return text;       
   // }
 
-  async function multi_match(key: any, value: any, canSuggest: boolean) {
-    setValue(value);
+  async function multi_match() {
     if (value.length < 3) {
-      return
+      handle_notifications("Search term must be at least 3 characters long", "warning");
+      return;
     }
+
     const token = appData.userinfo.tokens.idToken.toString();
     const fields = []
+    const key = "None"
     if (searchByTitle){
       fields.push({"field": "title", "boost": titleBoost})
     }
@@ -142,30 +145,15 @@ function KeywordMultiPage(props: AppPage) {
         "fields": fields
       })
     });
-    var suggestns = []
     var itms = []
     if (response.ok) {
       // read the response body
       const resp = await response.json();
       const arr = resp['result']['hits']['hits']
 
-      if (canSuggest) {
-        // iterate over arr
-        for (let i = 0; i < arr.length; i++) {
-          // get the _source
-          const source = arr[i]['_source']
-          // get the title
-          const title = source['title']
-          // add to suggestions
-          suggestns.push({ value: title })
-        }
-        setSuggestions(suggestns)
-      }
-      else {
-
-        // set the value of the input box to the first result
-        // load cards here
-        for (let i = 0; i < arr.length; i++) {
+      // set the value of the input box to the first result
+      // load cards here
+      for (let i = 0; i < arr.length; i++) {
           // get the _source
           const source = arr[i]['_source']
           // get the title
@@ -180,15 +168,10 @@ function KeywordMultiPage(props: AppPage) {
             image_url: source['image_url']
           })
         }
-        setItems(itms)
-
-      }
-
-
+      setItems(itms)
     } else {
       handle_notifications("Index not found, please index the product catalog first", "error")
     }
-
   }
 
   return (
@@ -281,17 +264,19 @@ function KeywordMultiPage(props: AppPage) {
 
         </Grid>
         <Grid gridDefinition={[{ colspan: 12 }]}>
-          <Autosuggest
-            onChange={({ detail }) => multi_match("title", detail.value, false)}
-            value={value}
-            // options={suggestions}
-            options={[]}
-            onSelect={({ detail }) => multi_match("title", detail.selectedOption.value, false)}
-            ariaLabel="Autosuggest example with suggestions"
-            placeholder="A Multi-Match search across title, description, color, price"
-            empty="No matches found"
-          />
-
+          <div>
+          <Input
+              value={value}
+              onChange={({ detail }) => setValue(detail.value)}
+              placeholder="A Multi-Match search across title, description, color, price"
+            />
+        </div>
+        <div>
+          <Button variant="primary" onClick={multi_match}>
+            Search
+          </Button>
+        </div>
+        <div style={{ marginTop: "2vh" }}>
           <Cards cardDefinition={{
             header: item => (
               <div>
@@ -299,45 +284,14 @@ function KeywordMultiPage(props: AppPage) {
                 <SafeHtml html={item.name} />
               </Link>
               
-              <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-              
-              <div 
-                style={{ 
-                  marginTop: '20px', 
-                  marginBottom: '10px',
-                  fontFamily: "'Tangerine', 'Brush Script MT', cursive",
-                  fontSize: '1.5rem',
-                  lineHeight: '1.6',
-                  color: '#333',
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
-                  padding: '10px',
-                  background: 'linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
-                  borderRadius: '8px',
-                  maxHeight: '200px',
-                  overflow: 'auto'
-                }}
-              >
-                {item.description}
-              </div>
-              <div>
-                <img 
-                  src={item.image_url} 
-                  alt={item.title}
-                  style={{ 
-                    maxWidth: '20vw', 
-                    maxHeight: '20vh', 
-                    objectFit: 'contain'
-                  }}
-                  onError={(e) => {
-                    console.error("Image failed to load:", item.image_url);
-                    e.currentTarget.src = "https://via.placeholder.com/300x200?text=Image+Not+Available";
-                  }}
-                />
-              </div>
-              </Grid>
             </div>
             ),
             sections: [
+              {
+                id: "description",
+                header: "Description",
+                content: item => <SafeHtml html={item.description} />
+              },
               {
                 id: "color",
                 header: "Color",
@@ -347,16 +301,27 @@ function KeywordMultiPage(props: AppPage) {
                 id: "price",
                 header: "Price",
                 content: item => <SafeHtml html={item.price} />
+              },
+              {
+                id: "image",
+                header: "Image",
+                content: item => (
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                )
               }
             ]
           }}
             cardsPerRow={[
               { cards: 1 },
-              { minWidth: 500, cards: 1 }
+              { minWidth: 500, cards: 2 }
             ]}
             items={items}
             loadingText="Loading products"
-            visibleSections={["title", "description", "color", "price"]}
+            visibleSections={["title", "description", "color", "price", "image"]}
             empty={
               <Box
                 margin={{ vertical: "xs" }}
@@ -370,6 +335,7 @@ function KeywordMultiPage(props: AppPage) {
               </Box>
             }
           />
+        </div>
         </Grid>
       </Container>
     </ContentLayout>

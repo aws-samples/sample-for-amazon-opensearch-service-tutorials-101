@@ -13,6 +13,9 @@ import KeywordRangePage from "./pages/keyword-range-page";
 import IndexDocumentPage from "./pages/index-document-page";
 import KeywordWildcardPage from "./pages/keyword-wildcard-page";
 import UploadProductPage from "./pages/upload-product-page";
+import ComplexSearchPage from "./pages/keyword-complex-search-page";
+import FuzzySearchPage from "./pages/keyword-fuzzy-search-page";
+import AggregationsPage from "./pages/keyword-aggregations-page";
 
 export default function App() {
   const [activeHref, setActiveHref] = useState("#/");
@@ -104,11 +107,19 @@ export default function App() {
               items: [
                 { type: "link", text: "Prefix Match", href: "#/keyword-search/prefix-match" },
                 { type: "link", text: "Multi Match", href: "#/keyword-search/multi-match" },
+                { type: "link", text: "Fuzzy Search", href: "#/keyword-search/fuzzy-search" },
                 { type: "link", text: "Minimum Should Match", href: "#/keyword-search/minimum-should-match" },
                 { type: "link", text: "Wildcard Match", href: "#/keyword-search/wildcard-match" },
-                { type: "link", text: "Range Filter", href: "#/keyword-search/range-filter" },
+                { type: "link", text: "Range Filter", href: "#/keyword-search/range-filter" }
               ]
             },
+            {
+              type: "link-group", text: "Advanced Search", href: "#",
+              items: [
+                { type: "link", text: "Compound Queries", href: "#/keyword-search/complex-search" },
+                { type: "link", text: "Aggregations", href: "#/keyword-search/aggregations" }
+              ]
+            }
             // { type: "link", text: "Opensearch Dashboard", href: "#/opensearch-dashboard" }
           ]}
         />}
@@ -124,6 +135,9 @@ export default function App() {
               <Route path="/keyword-search/multi-match" element={<KeywordMultiPage setAppData={setAppData} />} />
               <Route path="/keyword-search/wildcard-match" element={<KeywordWildcardPage setAppData={setAppData} />} />
               <Route path="/keyword-search/range-filter" element={<KeywordRangePage setAppData={setAppData} />} />
+              <Route path="/keyword-search/complex-search" element={<ComplexSearchPage setAppData={setAppData} />} />
+              <Route path="/keyword-search/fuzzy-search" element={<FuzzySearchPage setAppData={setAppData} />} />
+              <Route path="/keyword-search/aggregations" element={<AggregationsPage setAppData={setAppData} />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>

@@ -46,13 +46,24 @@ def search_products(event):
         event (dict): The Lambda event object containing the search parameters in the body
                      Expected body format:
                      {
-                         "type": str,          # Type of search (multi_match, wildcard_match, match, prefix_match, range_filter)
+                         "type": str,          # Type of search (multi_match, wildcard_match, match, prefix_match, range_filter, complex_search)
                          "attribute_name": str, # Field name to search in
                          "attribute_value": str/int, # Value to search for
                          "fields": list,       # Required for multi_match, list of fields with boost values
                          "case_insensitive": bool, # Optional for wildcard_match
                          "minimum_should_match": str/int, # Required for match query
-                         "operator": str       # Required for range_filter (gt, gte, lt, lte)
+                         "operator": str,      # Required for range_filter (gt, gte, lt, lte)
+                         # Complex search parameters
+                         "search_value": str,  # Main search term
+                         "search_type": str,   # Type of complex search (combined, any, exact)
+                         "fields": [           # List of field definitions
+                             {
+                                 "name": str,  # Field name
+                                 "type": str,  # Field type (text, number, select, range)
+                                 "boost": int, # Optional boost value
+                                 "value": any  # Field value or range object
+                             }
+                         ]
                      }
 
     Returns:
@@ -63,6 +74,160 @@ def search_products(event):
 
     if "body" in event:
         body = json.loads(event["body"])
+        
+        # Handle complex search
+        if body["type"] == "complex_search":
+            search_value = body.get("search_value", "")
+            search_type = body.get("search_type", "combined")
+            fields = body.get("fields", [])
+            
+            # Handle aggregations as a separate search type
+            if search_type == "aggregations":
+                aggregations = body.get("aggregations", [])
+                search_body = {
+                    "query": {"match_all": {}},
+                    "aggs": {}
+                }
+                
+                # Process each aggregation definition
+                for agg in aggregations:
+                    agg_type = agg.get("type")
+                    agg_field = agg.get("field")
+                    agg_name = agg.get("name", agg_field)
+                    
+                    if not agg_type or not agg_field:
+                        continue
+                    
+                    if agg_type == "terms":
+                        search_body["aggs"][agg_name] = {
+                            "terms": {
+                                "field": agg_field + ".keyword",
+                                "size": agg.get("size", 10)
+                            }
+                        }
+                    elif agg_type == "stats":
+                        search_body["aggs"][agg_name] = {
+                            "stats": {
+                                "field": agg_field
+                            }
+                        }
+                    elif agg_type == "range":
+                        ranges = agg.get("ranges", [])
+                        if ranges:
+                            search_body["aggs"][agg_name] = {
+                                "range": {
+                                    "field": agg_field,
+                                    "ranges": ranges
+                                }
+                            }
+                    elif agg_type == "nested_stats":
+                        # For nested aggregations like avg_price_by_category
+                        search_body["aggs"][agg_name] = {
+                            "terms": {
+                                "field": agg_field + ".keyword",
+                                "size": agg.get("size", 10)
+                            },
+                            "aggs": {
+                                agg.get("metric_name", "value"): {
+                                    agg.get("metric_type", "avg"): {
+                                        "field": agg.get("metric_field")
+                                    }
+                                }
+                            }
+                        }
+            
+            else:
+                # Build bool query for regular searches
+                must_conditions = []
+                should_conditions = []
+                
+                # Add text search conditions
+                if search_value:
+                    text_search = {
+                        "multi_match": {
+                            "query": search_value,
+                            "fields": ["title^3", "description^2", "color"],
+                            "type": "best_fields"
+                        }
+                    }
+                    
+                    # Add fuzzy search settings if search_type is fuzzy
+                    if search_type == "fuzzy":
+                        text_search["multi_match"].update({
+                            "fuzziness": "AUTO",
+                            "prefix_length": 2,
+                            "fuzzy_transpositions": True
+                        })
+                    elif search_type == "exact":
+                        text_search["multi_match"]["type"] = "phrase"
+                    
+                    must_conditions.append(text_search)
+                
+                # Process each field
+                for field in fields:
+                    field_name = field.get("name")
+                    field_type = field.get("type")
+                    field_value = field.get("value")
+                    field_boost = field.get("boost")
+                    
+                    if not field_value:
+                        continue
+                    
+                    # Build field query based on type
+                    if field_type == "text":
+                        field_query = {
+                            "match": {
+                                field_name: {
+                                    "query": field_value
+                                }
+                            }
+                        }
+                        if field_boost:
+                            field_query["match"][field_name]["boost"] = field_boost
+                    
+                    elif field_type == "select":
+                        field_query = {"term": {field_name: field_value}}
+                    
+                    elif field_type == "range":
+                        range_query = {"range": {field_name: {}}}
+                        if "min" in field_value:
+                            range_query["range"][field_name]["gte"] = field_value["min"]
+                        if "max" in field_value:
+                            range_query["range"][field_name]["lte"] = field_value["max"]
+                        field_query = range_query
+                    
+                    # Add to appropriate conditions list
+                    if search_type == "any":
+                        should_conditions.append(field_query)
+                    else:
+                        must_conditions.append(field_query)
+                
+                # Build final query
+                search_body = {
+                    "query": {
+                        "bool": {
+                            "must": must_conditions
+                        }
+                    }
+                }
+                
+                # Add should conditions for "any" type search
+                if search_type == "any" and should_conditions:
+                    search_body["query"]["bool"]["should"] = should_conditions
+                    search_body["query"]["bool"]["minimum_should_match"] = 1
+            
+            LOG.debug(f"final Opensearch Query: {search_body}")
+            
+            response = ops_client.search(index=INDEX_NAME, body=search_body)
+            # Add presigned URLs to search results before returning
+            try:
+                if 'hits' in response:
+                    response = add_presigned_urls_to_results(response)
+            except Exception as e:
+                LOG.error(f"Error adding presigned URLs to search results: {e}")
+            return success_response(response)
+            
+        # Handle existing search types
         attribute_name = body["attribute_name"] if "attribute_name" in body else None
         attribute_value = body["attribute_value"] if "attribute_value" in body else None
         if not isinstance(attribute_name, str):

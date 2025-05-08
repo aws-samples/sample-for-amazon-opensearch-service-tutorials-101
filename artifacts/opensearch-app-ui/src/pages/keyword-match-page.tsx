@@ -7,13 +7,16 @@ import Cards from "@cloudscape-design/components/cards";
 import Box from "@cloudscape-design/components/box";
 import Grid from "@cloudscape-design/components/grid";
 import Alert from "@cloudscape-design/components/alert";
+import Input from "@cloudscape-design/components/input";
 
 // Add Google Fonts for calligraphy
 const fontLink = document.createElement('link');
 fontLink.href = 'https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&display=swap';
 fontLink.rel = 'stylesheet';
 document.head.appendChild(fontLink);
-
+const SafeHtml = ({ html }: { html: string }) => {
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
+};
 
 import {
   Container,
@@ -61,24 +64,35 @@ function KeywordMatchPage(props: AppPage) {
     setShowAlert(true)
   }
 
-  async function match(search_value: string, mini_shld_match?: number) {
+  function highlighter(text: string, search_value: string) {
+    if (!search_value || !text) {
+      return text;
+    }
+
+    const lowerText = text.toLowerCase();
+    const lowerSearch = search_value.toLowerCase();
+    
+    if (!lowerText.includes(lowerSearch)) {
+      return text;
+    }
+
+    let result = '';
+    let lastIndex = 0;
+    let currentIndex = 0;
+
+    while ((currentIndex = lowerText.indexOf(lowerSearch, lastIndex)) !== -1) {
+      result += text.slice(lastIndex, currentIndex);
+      result += `<b>${text.slice(currentIndex, currentIndex + search_value.length)}</b>`;
+      lastIndex = currentIndex + search_value.length;
+    }
+    
+    result += text.slice(lastIndex);
+    return result;
+  }
+
+  async function match() {
     // Reset error state
     setError("");
-    
-    if (mini_shld_match && mini_shld_match > 0) {
-      setMinimumShouldMatch(mini_shld_match)
-    } else {
-      mini_shld_match = minimum_should_match
-    }
-    if (value == "") {
-      return
-    }
-    if (search_value == null) {
-      // load all results
-      search_value = value
-    }
-    setValue(search_value);
-    
     // Set loading state
     setLoading(true);
     
@@ -92,9 +106,9 @@ function KeywordMatchPage(props: AppPage) {
       },
       body: JSON.stringify({
         "attribute_name": search_field,
-        "attribute_value": search_value,
+        "attribute_value": value,
         "type": "match",
-        "minimum_should_match": String(mini_shld_match) + "%"
+        "minimum_should_match": String(minimum_should_match) + "%"
       })
     });
     var suggestns = []
@@ -115,21 +129,14 @@ function KeywordMatchPage(props: AppPage) {
         // add to suggestions
         suggestns.push({ value: title })
         
-        // Debug log for each item
-        console.log(`Item ${i} image_url:`, source['image_url']);
-        
-        // If image_url is not available, construct a placeholder URL
-        const imageUrl = source['image_url'] || 
-          `https://via.placeholder.com/800x400?text=${encodeURIComponent(title)}`;
-        
         itms.push({
-          name: title,
-          description: source['description'],
-          color: source['color'],
-          price: "$" + (source['price'] / 100).toFixed(2), // Convert cents to dollars with 2 decimal places
-          image_url: imageUrl,
-          file_name: source['file_name'] // Keep the original file_name for reference
-        })
+              name: highlighter(source['title'], value),
+              title: source['title'],
+              description: highlighter(source['description'], value),
+              color: highlighter(source['color'], value),
+              price: "$" + highlighter(String(source['price']), String(value)),
+              image_url: source['image_url']
+            })
       }
       setItems(itms)
     } else {
@@ -220,7 +227,7 @@ function KeywordMatchPage(props: AppPage) {
           <h3>Select your search field</h3>
         </div>
 
-        <Grid gridDefinition={[{ colspan: 4 }, { colspan: 5 }]}>
+        <Grid gridDefinition={[{ colspan: 4 }, { colspan: 8 }]}>
         
         <div>
           <RadioGroup onChange={({ detail }) => setSearchField(detail.value)} value={search_field} 
@@ -233,36 +240,44 @@ function KeywordMatchPage(props: AppPage) {
         </div>
         <div>
         <label><b>Set your <i>minimum-should-match</i> percentage</b></label>
-        <Slider onChange={({ detail }) => match(null, detail.value)} step={5} tickMarks value={minimum_should_match} max={100} min={10} />
+        <Slider onChange={({ detail }) => setMinimumShouldMatch(detail.value)} step={5} tickMarks value={minimum_should_match} max={100} min={10} />
         </div>
-         
-          
 
         </Grid>
-        
+
         <Grid gridDefinition={[{ colspan: 12 }]}>
+        <div>
+          <Input
+              value={value}
+              onChange={({ detail }) => setValue(detail.value)}
+              placeholder="A match search on Products e.g. Red Running Shoes"
+            />
+        </div>
+        <div>
+          <Button variant="primary" onClick={match}>
+            Search
+          </Button>
+        </div>
+        </Grid>
+        
 
-          <Autosuggest
-            onChange={({ detail }) => setValue(detail.value)}
-            value={value}
-            options={[]}
-            onKeyDown={({ detail }) => match(null)}
-            ariaLabel="Autosuggest example with suggestions"
-            placeholder="A match search on Products e.g. Red Running Shoes"
-            empty="No matches found"
-          />
-
+        <Grid gridDefinition={[{ colspan: 12 }]}>
+          
           <Cards 
             loading={loading}
             cardDefinition={{
             header: item => (
               <div>
                 <Link fontSize="heading-m">
-                  {item.name}
+                <SafeHtml html={item.name} />
                 </Link>
-                
-                <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-                
+              </div>
+            ),
+            sections: [
+              {
+                id: "description",
+                header: "Description",
+                content: item => (
                 <div 
                   style={{ 
                     marginTop: '20px', 
@@ -279,46 +294,40 @@ function KeywordMatchPage(props: AppPage) {
                     overflow: 'auto'
                   }}
                 >
-                  {item.description}
+                  <SafeHtml html={item.description} />
                 </div>
-                <div>
-                  <img 
-                    src={item.image_url} 
-                    alt={item.name}
-                    style={{ 
-                      maxWidth: '20vw', 
-                      maxHeight: '20vh', 
-                      objectFit: 'contain'
-                    }}
-                    onError={(e) => {
-                      console.error("Image failed to load:", item.image_url);
-                      e.currentTarget.src = "https://via.placeholder.com/300x200?text=Image+Not+Available";
-                    }}
-                  />
-                </div>
-                </Grid>
-              </div>
-            ),
-            sections: [
+                )
+              },
               {
                 id: "color",
                 header: "Color",
-                content: item => item.color
+                content: item => <SafeHtml html={item.color} />
               },
               {
                 id: "price",
                 header: "Price",
-                content: item => item.price
+                content: item => <SafeHtml html={item.price} />
+              },
+              {
+                id: "image",
+                header: "Image",
+                content: item => (
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                )
               }
             ]
           }}
             cardsPerRow={[
               { cards: 1 },
-              { minWidth: 500, cards: 1 }
+              { minWidth: 500, cards: 2 }
             ]}
             items={items}
             loadingText="Loading products"
-            visibleSections={["description", "color", "price"]}
+            visibleSections={["description", "color", "price", "image"]}
             empty={
               <Box
                 margin={{ vertical: "xs" }}

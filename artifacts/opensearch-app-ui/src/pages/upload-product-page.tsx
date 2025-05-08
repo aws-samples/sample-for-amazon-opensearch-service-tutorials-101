@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from "react";
+import { withAuthenticator } from '@aws-amplify/ui-react';
 import { 
   Container, 
   Header, 
@@ -27,7 +28,7 @@ interface ProductForm {
   color: string;
 }
 
-export default function UploadProductPage(props: AppPage) {
+function UploadProductPage(props: AppPage) {
     const appData = useContext(AppContext);
     const [formData, setFormData] = useState<ProductForm>({
     name: '',
@@ -262,3 +263,5 @@ export default function UploadProductPage(props: AppPage) {
     </ContentLayout>
   );
 } 
+
+export default withAuthenticator(UploadProductPage);
