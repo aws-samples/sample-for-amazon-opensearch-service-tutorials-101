@@ -75,8 +75,9 @@ Note: triggering builder.sh directly runs the script in Cloudshell which could t
 8. Get started by first creating your account on the Opensearch tutorial Application
    <img width="1219" alt="Screenshot 2025-04-01 at 5 01 51 pm" src="https://github.com/user-attachments/assets/3929334e-ebb7-4fe7-a4ee-e919bb641035" />
 
-9. To test out Keyword search functionality, first index some products on the Opensearch tutorial application. Every feature is also accompanied by a guide, best practices and links to the Opensearch documentation.
-   <img width="873" alt="Screenshot 2025-04-01 at 4 58 59 pm" src="https://github.com/user-attachments/assets/d11e351e-5549-4871-9616-f6d2b47251a2" />
+9. To test out Keyword search functionality, first index some products on the Opensearch tutorial application. Every feature is also accompanied by a guide, best practices and links to the Opensearch documentation. You could also index a custom product.
+   <img width="1424" alt="Opensearch-UI-tutorial" src="https://github.com/user-attachments/assets/10ad1c92-2781-4d6c-897d-33f69b4e86f2" />
+
 
 
 **Note:** The builder script will:
