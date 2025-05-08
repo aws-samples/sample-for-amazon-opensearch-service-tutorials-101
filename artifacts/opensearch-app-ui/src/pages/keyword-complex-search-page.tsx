@@ -289,18 +289,19 @@ function ComplexSearchPage(props: AppPage) {
               <p>
                 Complex search allows you to combine multiple search criteria to find exactly what you're looking for.
                 You can search across multiple fields with different types of matching.
-                
+              </p>
+              
                 <b>Search Types:</b>
                 <ul>
                   <li><b>Combined:</b> Matches all criteria (AND)</li>
                   <li><b>Any:</b> Matches any criteria (OR)</li>
                   <li><b>Exact:</b> Matches exact phrases</li>
                 </ul>
-              </p>
-              <p>
+              
               <p>
                 <b>In our example</b>, lets search for "Shoes" in the search term and combine it with "cross-training" across title. You could also look for "red" shoes by combining "red" in the color field  with "shoes" in the search term.
-                You could also try out a combination of filters/Text fields and the search term. For example, you could search for "pink" colored shoes in the "womens" category in a price range of 1000 to 15000.
+              You could also try out a combination of filters/Text fields and the search term. For example, you could search for "pink" colored shoes in the "womens" category in a price range of 1000 to 15000.
+              
               </p>
 
                 <b>Example Queries:</b>
@@ -410,7 +411,7 @@ function ComplexSearchPage(props: AppPage) {
                   <li>Description: 2x boost (^2)</li>
                   <li>Color: 1x boost (default)</li>
                 </ul>
-              </p>
+              
             </div>
           </HelpPanel>
         </ExpandableSection>

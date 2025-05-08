@@ -156,10 +156,6 @@ function AggregationsPage(props: AppPage) {
     }
   }
 
-  useEffect(() => {
-    fetchAggregations();
-  }, []);
-
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -213,18 +209,28 @@ function AggregationsPage(props: AppPage) {
             <div>
               <p>
                 Aggregations provide insights into your product catalog through various metrics and distributions:
-                <ul>
-                  <li>Category distribution</li>
-                  <li>Color distribution</li>
-                  <li>Price statistics and ranges</li>
-                  <li>Average prices by category</li>
-                </ul>
               </p>
+              <ul>
+                <li>Category distribution</li>
+                <li>Color distribution</li>
+                <li>Price statistics and ranges</li>
+                <li>Average prices by category</li>
+              </ul>
             </div>
           </HelpPanel>
         </ExpandableSection>
 
         <div style={{ height: "2vh" }} />
+        
+        <Box textAlign="center" margin={{ bottom: "m" }}>
+          <Button 
+            iconName="refresh" 
+            onClick={fetchAggregations}
+            variant="primary"
+          >
+            Load Aggregations
+          </Button>
+        </Box>
 
         {aggregations && (
           <SpaceBetween size="l">
