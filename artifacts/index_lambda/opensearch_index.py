@@ -66,6 +66,44 @@ def generate_presigned_url(event):
         LOG.error(f"Error generating presigned URL: {str(e)}")
         return failure_response(f"Error generating presigned URL: {str(e)}")
 
+# create the index if it doesn't exist
+def create_index():
+    """
+    Creates the OpenSearch index if it doesn't exist.
+    """
+    try:
+        res = ops_client.indices.create(index=INDEX_NAME, body={
+            "mappings": {
+                "properties": {
+                    "category": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {"type": "keyword"}
+                        }
+                    },
+                    "color": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {"type": "keyword"}
+                        }
+                    },
+                    "title": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {"type": "keyword"}
+                        }
+                    },
+                    "description": {"type": "text"},
+                    "price": {"type": "float"},
+                    "file_name": {"type": "text"}
+                }
+            }
+        })
+        LOG.info(f"method=create_index, create_response={res}")
+    except Exception as e:
+        LOG.error(f"method=create_index, error={e.info['error']['reason']}")
+        return failure_response(f'Error creating index. {e.info["error"]["reason"]}')
+    return success_response("Index created successfully")
 
 def bulk_index_documents(documents):
     """
@@ -79,6 +117,8 @@ def bulk_index_documents(documents):
               Success format: {"success": True, "result": "Products indexed successfully", "statusCode": "200"}
               Failure format: {"success": False, "errorMessage": error_message, "statusCode": "500"}
     """
+    create_index()
+    
     bulk_data = []
     for doc in documents:
         # Add index action

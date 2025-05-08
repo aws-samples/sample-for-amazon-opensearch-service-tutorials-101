@@ -37,6 +37,10 @@ function KeywordRangePage(props: AppPage) {
   const [alertMsg, setAlertMsg] = React.useState("")
   const [alertType, setAlertType] = React.useState("error")
 
+  const SafeHtml = ({ html }: { html: string }) => {
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
 
   useEffect(() => {
     const init = async () => {
@@ -54,8 +58,7 @@ function KeywordRangePage(props: AppPage) {
     setShowAlert(true)
   }
 
-  async function range_filter(key_details: any) {
-    if (key_details['key'] == 'Enter' || key_details['keyCode'] == 13) {
+  async function range_filter() {
       const token = appData.userinfo.tokens.idToken.toString();
       // call api gateway and pass in the value and set Authorization header
       const response = await fetch(config["apiUrl"] + "/search", {
@@ -71,7 +74,6 @@ function KeywordRangePage(props: AppPage) {
           "type": "range_filter",
         })
       });
-      var suggestns = []
       var itms = []
       if (response.ok) {
         // read the response body
@@ -85,8 +87,6 @@ function KeywordRangePage(props: AppPage) {
           const source = arr[i]['_source']
           // get the title
           const title = source['title']
-          // add to suggestions
-          suggestns.push({ value: title })
           itms.push({
             name: title,
             description: source['description'],
@@ -99,7 +99,7 @@ function KeywordRangePage(props: AppPage) {
       } else {
         handle_notifications("Index not found, please index the product catalog first", "error")
       }
-    }
+    
   }
 
   return (
@@ -215,7 +215,7 @@ function KeywordRangePage(props: AppPage) {
           <h3>Search by Price</h3>
         </div>
 
-        <Grid gridDefinition={[{ colspan: 3 }, { colspan: 3 }]}>
+        <Grid gridDefinition={[{ colspan: 4 }, { colspan: 8 }]}>
           <div>
             <RadioGroup onChange={({ detail }) => setOperator(detail.value)} value={operator}
               items={[
@@ -229,82 +229,65 @@ function KeywordRangePage(props: AppPage) {
           <div>
             <Input
               onChange={({ detail }) => setValue(Number(detail.value))}
-              onKeyDown={({ detail }) => range_filter(detail)}
               value={String(value)}
               inputMode="numeric"
               type="number"
             />
           </div>
+          <div>
+              <Button variant="primary" onClick={range_filter}>
+                Search
+              </Button>
+        </div>
 
         </Grid>
+        <div style={{ marginTop: "2vh" }}></div>
 
-        <Grid gridDefinition={[{ colspan: 12 }]}>
-
-          <Cards cardDefinition={{
+        <Cards cardDefinition={{
             header: item => (
               <div>
               <Link fontSize="heading-m">
-                {item.name}
+                <SafeHtml html={item.name} />
               </Link>
               
-              <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-              
-              <div 
-                style={{ 
-                  marginTop: '20px', 
-                  marginBottom: '10px',
-                  fontFamily: "'Tangerine', 'Brush Script MT', cursive",
-                  fontSize: '1.5rem',
-                  lineHeight: '1.6',
-                  color: '#333',
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
-                  padding: '10px',
-                  background: 'linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
-                  borderRadius: '8px',
-                  maxHeight: '200px',
-                  overflow: 'auto'
-                }}
-              >
-                {item.description}
-              </div>
-              <div>
-                <img 
-                  src={item.image_url} 
-                  alt={item.name}
-                  style={{ 
-                    maxWidth: '20vw', 
-                    maxHeight: '20vh', 
-                    objectFit: 'contain'
-                  }}
-                  onError={(e) => {
-                    console.error("Image failed to load:", item.image_url);
-                    e.currentTarget.src = "https://via.placeholder.com/300x200?text=Image+Not+Available";
-                  }}
-                />
-              </div>
-              </Grid>
             </div>
             ),
             sections: [
               {
+                id: "description",
+                header: "Description",
+                content: item => <SafeHtml html={item.description} />
+              },
+              {
                 id: "color",
                 header: "Color",
-                content: item => item.color
+                content: item => <SafeHtml html={item.color} />
               },
               {
                 id: "price",
                 header: "Price",
-                content: item => item.price
+                content: item => <SafeHtml html={item.price} />
+              },
+              {
+                id: "image",
+                header: "Image",
+                content: item => (
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                )
               }
             ]
           }}
             cardsPerRow={[
               { cards: 1 },
-              { minWidth: 500, cards: 1 }
+              { minWidth: 500, cards: 2 }
             ]}
             items={items}
             loadingText="Loading products"
-            visibleSections={["title", "description", "color", "price"]}
+            visibleSections={["title", "description", "color", "price", "image"]}
             empty={
               <Box
                 margin={{ vertical: "xs" }}
@@ -318,7 +301,7 @@ function KeywordRangePage(props: AppPage) {
               </Box>
             }
           />
-        </Grid>
+        
       </Container>
     </ContentLayout>
   );

@@ -37,6 +37,10 @@ function KeywordWildcardPage(props: AppPage) {
   const [alertMsg, setAlertMsg] = React.useState("")
   const [alertType, setAlertType] = React.useState("error")
 
+  const SafeHtml = ({ html }: { html: string }) => {
+    return <span dangerouslySetInnerHTML={{ __html: html }} />;
+  };
+
   useEffect(() => {
     const init = async () => {
       let userdata = await AuthHelper.getUserDetails();
@@ -212,63 +216,43 @@ function KeywordWildcardPage(props: AppPage) {
             header: item => (
               <div>
               <Link fontSize="heading-m">
-                {item.name}
+                <SafeHtml html={item.name} />
               </Link>
               
-              <Grid gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}>
-              
-              <div 
-                style={{ 
-                  marginTop: '20px', 
-                  marginBottom: '10px',
-                  fontFamily: "'Tangerine', 'Brush Script MT', cursive",
-                  fontSize: '1.5rem',
-                  lineHeight: '1.6',
-                  color: '#333',
-                  textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
-                  padding: '10px',
-                  background: 'linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
-                  borderRadius: '8px',
-                  maxHeight: '200px',
-                  overflow: 'auto'
-                }}
-              >
-                {item.description}
-              </div>
-              <div>
-                <img 
-                  src={item.image_url} 
-                  alt={item.name}
-                  style={{ 
-                    maxWidth: '20vw', 
-                    maxHeight: '20vh', 
-                    objectFit: 'contain'
-                  }}
-                  onError={(e) => {
-                    console.error("Image failed to load:", item.image_url);
-                    e.currentTarget.src = "https://via.placeholder.com/300x200?text=Image+Not+Available";
-                  }}
-                />
-              </div>
-              </Grid>
             </div>
             ),
             sections: [
               {
+                id: "description",
+                header: "Description",
+                content: item => <SafeHtml html={item.description} />
+              },
+              {
                 id: "color",
                 header: "Color",
-                content: item => item.color
+                content: item => <SafeHtml html={item.color} />
               },
               {
                 id: "price",
                 header: "Price",
-                content: item => item.price
+                content: item => <SafeHtml html={item.price} />
+              },
+              {
+                id: "image",
+                header: "Image",
+                content: item => (
+                  <img
+                    src={item.image_url}
+                    alt={item.title}
+                    style={{ maxWidth: "100%", height: "auto" }}
+                  />
+                )
               }
             ]
           }}
             cardsPerRow={[
               { cards: 1 },
-              { minWidth: 500, cards: 1 }
+              { minWidth: 500, cards: 2 }
             ]}
             items={items}
             loadingText="Loading products"
