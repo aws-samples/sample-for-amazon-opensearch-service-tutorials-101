@@ -11,9 +11,12 @@ The application provides examples of different search functionalities using Amaz
 - Keyword Search
   - Prefix Match
   - Multi Match
+  - Fuzzy Search
   - Minimum Should Match
   - Wildcard Match
   - Range Filter
+  - Compound Queries
+  - Aggregations
 - Document Indexing
 
 ## Architecture
@@ -56,8 +59,9 @@ cd sample-for-amazon-opensearch-tutorials-101
 
 4. Deploy the infrastructure:
 ```bash
-sh builder.sh
+sh installer.sh
 ```
+Note: triggering builder.sh directly runs the script in Cloudshell which could terminate due to inactivity. We recommend running installer.sh which triggers a codebuild job.
 
 5. Press Enter to confirm deployment
 
