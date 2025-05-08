@@ -2,8 +2,6 @@
 
 This project demonstrates various OpenSearch search capabilities through a web application built with [Cloudscape React](https://cloudscape.design/) and AWS services.
 
-### DeepWiki Docs : https://deepwiki.com/aws-samples/sample-for-amazon-opensearch-tutorials-101
-
 ## Overview
 
 The application provides examples of different search functionalities using Amazon OpenSearch Service, including:
@@ -145,3 +143,4 @@ Infrastructure is defined using AWS CDK in the `search_tutorials/` directory:
 - `opensearch_proxy_stack.py`: OpenSearch domain and Lambda functions
 - `apprunner_hosting_stack.py`: UI hosting configuration
 
+- DeepWiki Docs : https://deepwiki.com/aws-samples/sample-for-amazon-opensearch-tutorials-101
