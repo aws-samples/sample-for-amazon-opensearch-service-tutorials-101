@@ -237,7 +237,7 @@ function ComplexSearchPage(props: AppPage) {
         
         setItems(itms);
       } else {
-        handle_notifications("Error performing search", "error");
+        handle_notifications("Index not found, please index the product catalog first", "error")
       }
     } catch (error) {
       handle_notifications("Error performing search: " + error, "error");

@@ -90,7 +90,7 @@ function AggregationsPage(props: AppPage) {
 
   async function fetchAggregations() {
     const token = appData.userinfo.tokens.idToken.toString();
-    
+
     const queryBody = {
       type: "complex_search",
       search_type: "aggregations",
@@ -117,10 +117,10 @@ function AggregationsPage(props: AppPage) {
           field: "price",
           name: "price_ranges",
           ranges: [
-            {"to": 5000},
-            {"from": 5000, "to": 10000},
-            {"from": 10000, "to": 15000},
-            {"from": 15000}
+            { "to": 5000 },
+            { "from": 5000, "to": 10000 },
+            { "from": 10000, "to": 15000 },
+            { "from": 15000 }
           ]
         },
         {
@@ -149,7 +149,7 @@ function AggregationsPage(props: AppPage) {
         const resp = await response.json();
         setAggregations(resp['result']['aggregations']);
       } else {
-        handle_notifications("Error fetching aggregations", "error");
+        handle_notifications("Index not found, please index the product catalog first", "error")
       }
     } catch (error) {
       handle_notifications("Error fetching aggregations: " + error, "error");
@@ -208,23 +208,82 @@ function AggregationsPage(props: AppPage) {
           >
             <div>
               <p>
-                Aggregations provide insights into your product catalog through various metrics and distributions:
+                <b>Aggregations</b> in OpenSearch allow you to analyze your data and extract statistics beyond simple search results. They enable real-time analytics on large datasets, performed in milliseconds, though they typically consume more CPU and memory than standard queries.
               </p>
+
+              <h4>Types of Aggregations</h4>
               <ul>
-                <li>Category distribution</li>
-                <li>Color distribution</li>
-                <li>Price statistics and ranges</li>
-                <li>Average prices by category</li>
+                <li><b>Metric Aggregations:</b> Calculate statistics from field values (min, max, avg, sum, etc.)</li>
+                <li><b>Bucket Aggregations:</b> Group documents into "buckets" based on criteria</li>
+                <li><b>Pipeline Aggregations:</b> Process the output of other aggregations</li>
+              </ul>
+
+              <p>
+                <b>In our example</b>, let's explore product data with aggregations for insights about categories and prices: 
+              </p>
+
+              <pre>
+                <code>{
+                  JSON.stringify({
+                    "aggregations": [
+                      {
+                        "name": "category_counts",
+                        "type": "terms",
+                        "field": "category",
+                        "size": 10
+                      },
+                      {
+                        "name": "price_stats",
+                        "type": "stats",
+                        "field": "price"
+                      },
+                      {
+                        "name": "price_ranges",
+                        "type": "range",
+                        "field": "price",
+                        "ranges": [
+                          { "to": 50 },
+                          { "from": 50, "to": 100 },
+                          { "from": 100 }
+                        ]
+                      },
+                      {
+                        "name": "avg_price_by_category",
+                        "type": "nested_stats",
+                        "field": "category",
+                        "metric_field": "price",
+                        "metric_type": "avg",
+                        "metric_name": "average_price"
+                      }
+                    ]
+                  }, null, 2)
+                }</code>
+              </pre>
+
+              <h4>Common Aggregation Types</h4>
+              <ul>
+                <li><b>terms:</b> Group documents by field values (like categories)</li>
+                <li><b>stats:</b> Calculate min, max, sum, avg, and count for a numeric field</li>
+                <li><b>range:</b> Group documents into predefined buckets based on ranges</li>
+                <li><b>nested_stats:</b> Combine buckets with metrics (e.g., average price per category)</li>
+              </ul>
+
+              <h4>Best Practices</h4>
+              <ul>
+                <li>Use field mappings optimized for aggregations (keyword fields for terms)</li>
+                <li>Consider performance impact when aggregating on high-cardinality fields</li>
+                <li>Set appropriate size limits on bucket aggregations</li>
+                <li>Use pipeline aggregations for complex analytics</li>
               </ul>
             </div>
           </HelpPanel>
         </ExpandableSection>
 
         <div style={{ height: "2vh" }} />
-        
+
         <Box textAlign="center" margin={{ bottom: "m" }}>
-          <Button 
-            iconName="refresh" 
+          <Button
+            iconName="refresh"
             onClick={fetchAggregations}
             variant="primary"
           >
