@@ -15,7 +15,7 @@ credentials = boto3.Session().get_credentials()
 
 ENDPOINT = getenv("OPENSEARCH_HOST", "default")
 SERVICE = "es"  # aoss for Amazon Opensearch serverless
-REGION = getenv("REGION", "us-east-1")
+REGION = getenv("AWS_REGION", "us-east-1")
 S3_BUCKET = getenv("S3_BUCKET_NAME", "default")
 awsauth = AWS4Auth(
     credentials.access_key,
