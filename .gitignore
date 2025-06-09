@@ -4,3 +4,4 @@ cdk.out
 tests/
 .venv
 cdk.context.json
+artifacts/opensearch-app-ui/src/config.json
