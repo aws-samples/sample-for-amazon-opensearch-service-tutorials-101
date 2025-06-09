@@ -290,7 +290,26 @@ function KeywordMultiPage(props: AppPage) {
               {
                 id: "description",
                 header: "Description",
-                content: item => <SafeHtml html={item.description} />
+                content: item => (
+                  <div 
+                    style={{ 
+                      marginTop: '20px', 
+                      marginBottom: '10px',
+                      fontFamily: "'Tangerine', 'Brush Script MT', cursive",
+                      fontSize: '1.5rem',
+                      lineHeight: '1.6',
+                      color: '#333',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                      padding: '10px',
+                      background: 'linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
+                      borderRadius: '8px',
+                      maxHeight: '200px',
+                      overflow: 'auto'
+                    }}
+                  >
+                    <SafeHtml html={item.description} />
+                  </div>
+                  )
               },
               {
                 id: "color",

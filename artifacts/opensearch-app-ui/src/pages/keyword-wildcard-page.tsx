@@ -17,7 +17,8 @@ import {
   HelpPanel,
   Icon,
   RadioGroup,
-  Slider,
+  FormField,
+  Input,
   Alert,
   Checkbox
 } from "@cloudscape-design/components";
@@ -57,8 +58,12 @@ function KeywordWildcardPage(props: AppPage) {
     setShowAlert(true)
   }
 
-  async function wildcard(key_details: any) {
-    if (key_details['key'] == 'Enter' || key_details['keyCode'] == 13) {
+  async function wildcard() {
+    if (value == "") {
+      handle_notifications("Please enter a search term", "error")
+      return
+    }
+    try {
       const token = appData.userinfo.tokens.idToken.toString();
       // call api gateway and pass in the value and set Authorization header
       const response = await fetch(config["apiUrl"] + "/search", {
@@ -102,6 +107,8 @@ function KeywordWildcardPage(props: AppPage) {
       } else {
         handle_notifications("Index not found, please index the product catalog first", "error")
       }
+    } catch (error) {
+      handle_notifications("Error fetching wildcard search: " + error, "error");
     }
   }
 
@@ -202,15 +209,17 @@ function KeywordWildcardPage(props: AppPage) {
 
         <Grid gridDefinition={[{ colspan: 12 }]}>
 
-          <Autosuggest
-            onChange={({ detail }) => setValue(detail.value)}
-            value={value}
-            options={[]}
-            onKeyDown={({ detail }) => wildcard(detail)}
-            ariaLabel="Autosuggest example with suggestions"
-            placeholder="A wildcard search on Products e.g. W*g"
-            empty="No matches found"
-          />
+          <FormField label="Search Term">
+            <Input
+              value={value}
+              onChange={({ detail }) => setValue(detail.value)}
+              placeholder="A wildcard search on Product catalog e.g. W*g"
+            />
+          </FormField>
+
+          <Button variant="primary" onClick={wildcard}>
+            Search
+          </Button>
 
           <Cards cardDefinition={{
             header: item => (
@@ -225,7 +234,26 @@ function KeywordWildcardPage(props: AppPage) {
               {
                 id: "description",
                 header: "Description",
-                content: item => <SafeHtml html={item.description} />
+                content: item => (
+                  <div 
+                    style={{ 
+                      marginTop: '20px', 
+                      marginBottom: '10px',
+                      fontFamily: "'Tangerine', 'Brush Script MT', cursive",
+                      fontSize: '1.5rem',
+                      lineHeight: '1.6',
+                      color: '#333',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
+                      padding: '10px',
+                      background: 'linear-gradient(to right, rgba(255,255,255,0.9), rgba(255,255,255,0.7))',
+                      borderRadius: '8px',
+                      maxHeight: '200px',
+                      overflow: 'auto'
+                    }}
+                  >
+                    <SafeHtml html={item.description} />
+                  </div>
+                  )
               },
               {
                 id: "color",
