@@ -77,23 +77,29 @@ def create_index():
                 "properties": {
                     "category": {
                         "type": "text",
+                        "analyzer": "stop",
                         "fields": {
                             "keyword": {"type": "keyword"}
                         }
                     },
                     "color": {
                         "type": "text",
+                        "analyzer": "stop",
                         "fields": {
                             "keyword": {"type": "keyword"}
                         }
                     },
                     "title": {
                         "type": "text",
+                        "analyzer": "stop",
                         "fields": {
                             "keyword": {"type": "keyword"}
                         }
                     },
-                    "description": {"type": "text"},
+                    "description": {
+                        "type": "text",
+                        "analyzer": "stop",
+                    },
                     "price": {"type": "float"},
                     "file_name": {"type": "text"}
                 }
