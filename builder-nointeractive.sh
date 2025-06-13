@@ -13,9 +13,9 @@ else
     infra_env=$1
 fi  
 
-if [ $infra_env != "dev" -a $infra_env != "qa" -a $infra_env != "sandbox" ]
+if [ $infra_env != "dev" -a $infra_env != "qa" -a $infra_env != "sandbox" -a $infra_env != "prod" ]
 then
-    echo "Environment name can only be dev or qa or sandbox. example 'sh builder-noninteractive.sh dev' "
+    echo "Environment name can only be dev or qa or sandbox or prod. example 'sh builder-noninteractive.sh dev' "
     exit 1
 fi
 

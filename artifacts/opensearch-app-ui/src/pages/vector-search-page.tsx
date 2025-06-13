@@ -32,6 +32,8 @@ function VectorSearchPage(props: AppPage) {
   const [alertType, setAlertType] = useState<"error" | "success" | "warning" | "info">("error");
   const [onDiskItems, setOnDiskItems] = useState([]);
   const [inMemoryItems, setInMemoryItems] = useState([]);
+  const [onDiskHits, setTotalOnDiskHits] = useState([])
+  const [inMemoryHits, setTotalInMemoryHits] = useState([])
   const [isLoading, setIsLoading] = useState(false);
   const [onDiskTime, setOnDiskTime] = useState(0);
   const [inMemoryTime, setInMemoryTime] = useState(0);
@@ -121,6 +123,7 @@ function VectorSearchPage(props: AppPage) {
           const resp = await response.json();
           const arr = resp['result']['hits']['hits'];
           setOnDiskTime(resp["result"]["took"]);
+          setTotalOnDiskHits(resp["result"]["hits"]["total"]["value"])
           const itms = arr.map((hit: any) => {
             const source = hit['_source'];
             return {
@@ -148,6 +151,7 @@ function VectorSearchPage(props: AppPage) {
           const resp = await response.json();
           const arr = resp['result']['hits']['hits'];
           setInMemoryTime(resp["result"]["took"]);
+          setTotalInMemoryHits(resp["result"]["hits"]["total"]["value"])
           const itms = arr.map((hit: any) => {
             const source = hit['_source'];
             return {
@@ -163,13 +167,13 @@ function VectorSearchPage(props: AppPage) {
         }
       });
 
-      // Wait for both promises to complete to handle any errors
-      await Promise.all([onDiskPromise, inMemoryPromise]);
+    //   // Wait for both promises to complete to handle any errors
+    //   await Promise.all([onDiskPromise, inMemoryPromise]);
       
-      // Check if both requests failed
-      if (onDiskItems.length === 0 && inMemoryItems.length === 0) {
-        handle_notifications("Vector Index not found, please index the product catalog first", "error");
-      }
+    //   // Check if both requests failed
+    //   if (onDiskItems.length === 0 && inMemoryItems.length === 0) {
+    //     handle_notifications("Vector Index not found, please index the product catalog first", "error");
+    //   }
     } catch (error) {
       handle_notifications("Error performing search: " + error, "error");
     } finally {
@@ -273,7 +277,7 @@ function VectorSearchPage(props: AppPage) {
 
           <Grid gridDefinition={[ { colspan: 5 }, { colspan: 1 }, { colspan: 6 }]}>
             <div>
-            {onDiskTime > 0 && <Header variant="h3">On-Disk Mode ({onDiskTime}ms)</Header>}
+            {onDiskTime > 0 && <Header variant="h3">On-Disk Mode ({onDiskTime}ms) ({onDiskHits} items)</Header>}
               {onDiskTime === 0 && <Header variant="h3">On-Disk Mode</Header>}
               <Cards
                 cardDefinition={{
@@ -343,7 +347,7 @@ function VectorSearchPage(props: AppPage) {
             <div style={{ width: "2px", height: "100%", backgroundColor: "#ccc" }} />
           
             <div>
-              {inMemoryTime > 0 && <Header variant="h3">In-Memory Mode ({inMemoryTime}ms)</Header>}
+              {inMemoryTime > 0 && <Header variant="h3">In-Memory Mode ({inMemoryTime}ms) ({inMemoryHits} items)</Header>}
               {inMemoryTime === 0 && <Header variant="h3">In-Memory Mode</Header>}
               <Cards
                 cardDefinition={{
