@@ -45,7 +45,7 @@ cd ..
 echo "--- Upgrading npm ---"
 sudo npm install n stable -g
 echo "--- Installing cdk ---"
-sudo npm install -g aws-cdk@2.91.0
+sudo npm install -g aws-cdk@2.1018.0
 
 echo "--- Bootstrapping CDK on account in region $deployment_region ---"
 cdk bootstrap aws://$(aws sts get-caller-identity --query "Account" --output text)/$deployment_region
@@ -101,9 +101,10 @@ then
     cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP OpensearchProxy"$infra_env" --require-approval never
 else
     echo "Cannot deploy Opensearch stack as lambda_build has failed $status"
+    exit 1
 fi
 
-echo "---Deploying the UI ---"
+echo "---Deploying Opensearch UI ECR image ---"
 project=opnsrchuicntnr"$infra_env"
 echo project: $project
 build_container=$(aws codebuild list-projects|grep -o $project'[^,"]*')
@@ -112,14 +113,14 @@ echo "--- Trigger UI Build ---"
 BUILD_ID=$(aws codebuild start-build --project-name $build_container | jq '.build.id' -r)
 echo Build ID : $BUILD_ID
 if [ "$?" != "0" ]; then
-    echo "Could not start UI CodeBuild project. Exiting."
+    echo "Could not start OpensearchUI CodeBuild project. Exiting."
     exit 1
 else
-    echo "UI Build started successfully."
+    echo "OpensearchUI Build started successfully."
 fi
 
 # Monitor the build
-echo "Monitoring UI build progress..."
+echo "Monitoring OpensearchUI build progress..."
 while true; do
   status=$(aws codebuild batch-get-builds --ids $BUILD_ID | jq -r '.builds[0].buildStatus')
   phase=$(aws codebuild batch-get-builds --ids $BUILD_ID | jq -r '.builds[0].currentPhase')
@@ -168,5 +169,6 @@ if aws s3api head-bucket --bucket "$bucket_name" 2>/dev/null; then
 else
     echo "Error: S3 bucket $bucket_name does not exist"
 fi
+
 
 echo "Deployment Complete"

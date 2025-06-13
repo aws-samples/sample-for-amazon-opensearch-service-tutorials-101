@@ -158,6 +158,10 @@ function KeywordWildcardPage(props: AppPage) {
                 <li>* - Matches zero or more characters (e.g., "auto*" matches "automatic", "automobile")</li>
                 <li>? - Matches exactly one character (e.g., "te?t" matches "test", "text")</li>
               </ul>
+              <h4>Prerequisites</h4>
+              <ul>
+                <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+              </ul>
               <p>
                 <b>In our example</b>, let's search for "Wa*g" across product titles.
                 The query would look like:

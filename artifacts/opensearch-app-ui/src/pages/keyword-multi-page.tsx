@@ -217,6 +217,10 @@ function KeywordMultiPage(props: AppPage) {
               It's particularly useful when you want to find relevant results in different parts of your documents.
               The <b>^</b> symbol “boosts” certain fields. Boosting increases the importance of matches in the boosted field. For example <b>"field^2"</b> gives that field twice the importance of other fields.
               </p>
+              <h4>Prerequisites</h4>
+              <ul>
+                <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+              </ul>
               <p>
                 <b>In our example</b>, lets search for "Pink" across three fields: <i>title, description, color</i>. 
                 Use the slider to boost the <b>color</b> field by 4, making matches in this field four times more significant. You can try out various combinations here.

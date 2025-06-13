@@ -47,7 +47,7 @@ cd ..
 echo "--- Upgrading npm ---"
 sudo npm install n stable -g
 echo "--- Installing cdk ---"
-sudo npm install -g aws-cdk@2.91.0
+sudo npm install -g aws-cdk@2.1018.0
 
 echo "--- Bootstrapping CDK on account in region $deployment_region ---"
 cdk bootstrap aws://$(aws sts get-caller-identity --query "Account" --output text)/$deployment_region

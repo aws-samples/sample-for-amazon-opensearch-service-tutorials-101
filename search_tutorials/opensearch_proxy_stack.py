@@ -46,6 +46,7 @@ class OpensearchProxyStack(Stack):
         )
 
         private_subnets = vpc.private_subnets
+        public_subnets = vpc.public_subnets
         private_subnets_required = []
         for i in range(env_params["data_nodes"]):
             if i < len(private_subnets):
@@ -67,7 +68,7 @@ class OpensearchProxyStack(Stack):
         domain = _opensearch.Domain(
             self,
             f"opnsrch_{env_name}_domain",
-            version=_opensearch.EngineVersion.OPENSEARCH_2_7,
+            version=_opensearch.EngineVersion.OPENSEARCH_2_19,
             vpc=vpc,
             vpc_subnets=[
                 {"subnet_filters": [_ec2.SubnetFilter.by_ids(private_subnets_required)]}
@@ -144,6 +145,21 @@ class OpensearchProxyStack(Stack):
             )
         )
 
+        # Add Bedrock permissions to Lambda role
+        custom_lambda_role.add_to_policy(
+            _iam.PolicyStatement(
+                actions=['bedrock:InvokeModel'],
+                resources=[f"arn:aws:bedrock:{region}::foundation-model/*"]
+            )
+        )
+
+        custom_lambda_role.add_to_policy(
+            _iam.PolicyStatement(
+                actions=['lambda:InvokeFunction'],
+                resources=[f"arn:aws:lambda:{region}:{account_id}:function:{env_params['bedrock_lambda_function_name']}"]
+            )
+        )
+
         self.stack_suppressor(
             self,
             "AwsSolutions-IAM4",
@@ -169,7 +185,7 @@ class OpensearchProxyStack(Stack):
             code=_lambda.Code.from_asset(
                 os.path.join(os.getcwd(), "artifacts/index_lambda/")
             ),
-            runtime=_lambda.Runtime.PYTHON_3_10,
+            runtime=_lambda.Runtime.PYTHON_3_12,
             handler="opensearch_index.handler",
             role=custom_lambda_role,
             timeout=_cdk.Duration.seconds(300),
@@ -177,7 +193,9 @@ class OpensearchProxyStack(Stack):
             memory_size=3000,
             layers=[opensearch_utils_layer],
             vpc=vpc,
-            environment={"OPENSEARCH_HOST": domain.domain_endpoint, "S3_BUCKET_NAME": bucket_name},
+            environment={"OPENSEARCH_HOST": domain.domain_endpoint,
+                          "S3_BUCKET_NAME": bucket_name,
+                          "BEDROCK_LAMBDA_NAME": env_params["bedrock_lambda_function_name"]},
         )
 
         opensearch_search_lambda = _lambda.Function(
@@ -187,7 +205,7 @@ class OpensearchProxyStack(Stack):
             code=_lambda.Code.from_asset(
                 os.path.join(os.getcwd(), "artifacts/search_lambda/")
             ),
-            runtime=_lambda.Runtime.PYTHON_3_10,
+            runtime=_lambda.Runtime.PYTHON_3_12,
             handler="opensearch_search.handler",
             role=custom_lambda_role,
             timeout=_cdk.Duration.seconds(300),
@@ -197,6 +215,7 @@ class OpensearchProxyStack(Stack):
             vpc=vpc,
             environment={"OPENSEARCH_HOST": domain.domain_endpoint, "S3_BUCKET_NAME": bucket_name},
         )
+
 
         opensearch_access_policy_1 = _iam.PolicyStatement(
             actions=[
@@ -229,10 +248,35 @@ class OpensearchProxyStack(Stack):
         opensearch_index_lambda.add_to_role_policy(opensearch_access_policy_2)
         opensearch_search_lambda.add_to_role_policy(opensearch_access_policy_1)
         opensearch_search_lambda.add_to_role_policy(opensearch_access_policy_2)
+
+        # Enable interface VPC endpoint for Bedrock
+        bedrock_endpoint = _ec2.InterfaceVpcEndpoint(
+            self,
+            f"bedrock-endpoint-{env_name}",
+            vpc=vpc,
+            service=_ec2.InterfaceVpcEndpointService(
+                name=f"com.amazonaws.{region}.bedrock-runtime",
+                port=443
+            ),
+            private_dns_enabled=True,
+        )
+
         self.stack_suppressor(
             self,
             "AwsSolutions-L1",
             "Deferred. We are on 3_10 which is just one lower than the latest",
+        )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-COG3",
+            "Advanced security mode is off for this PoC due to changes in user pool feature plans",
+        )
+        
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-COG2",
+            "MFA is off for this PoC",
         )
 
         # Enable adding suppressions to child constructs

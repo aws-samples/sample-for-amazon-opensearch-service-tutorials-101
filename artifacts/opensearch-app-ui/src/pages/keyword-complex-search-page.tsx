@@ -297,6 +297,10 @@ function ComplexSearchPage(props: AppPage) {
                   <li><b>Any:</b> Matches any criteria (OR)</li>
                   <li><b>Exact:</b> Matches exact phrases</li>
                 </ul>
+                <h4>Prerequisites</h4>
+                 <ul>
+                    <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+                  </ul>
               
               <p>
                 <b>In our example</b>, lets search for "Shoes" in the search term and combine it with "cross-training" across title. You could also look for "red" shoes by combining "red" in the color field  with "shoes" in the search term.

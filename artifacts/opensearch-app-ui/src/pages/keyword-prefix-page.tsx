@@ -169,6 +169,10 @@ function KeywordPrefixPage(props: AppPage) {
                       It's especially useful when you want to implement type-ahead or autocomplete functionality, or when you're not sure of the exact complete term.
                       The match_phrase_prefix query matches documents where the specified field contains terms in the exact order, with the last term treated as a prefix.
                       </p>
+                      <h4>Prerequisites</h4>
+                        <ul>
+                          <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+                        </ul>
                       <p>
                         <b>In our example</b>, let's search for "Pink" in the title field. When you type "Pi", it will match products with titles containing words that start with "Pi" (like "Pink", "Pillow", "Picture"). You can try different prefixes here. The generated prefix query would look as follows:
                       </p>

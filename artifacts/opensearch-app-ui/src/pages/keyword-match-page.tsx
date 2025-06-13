@@ -197,6 +197,10 @@ function KeywordMatchPage(props: AppPage) {
                       The <b>minimum_should_match</b> parameter in Opensearch is a powerful tool that lets you control how many search terms must match for a document to be included in the results.
                       This is particularly useful when searching across multiple terms and you want to ensure a certain level of relevance. You can specify this either as a number (2) or as a percentage (75%).
                       </p>
+                      <h4>Prerequisites</h4>
+                        <ul>
+                          <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+                        </ul>
                       <p>
                         <b>In our example</b>, let's search for "red running wolves" across product descriptions. Using minimum_should_match, we can specify that at least 2 out of these 3 terms must be present for a result to be returned. Use the slider to adjust how many terms must match.
                         The query would look like:

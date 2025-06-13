@@ -93,9 +93,9 @@ function IndexDocumentPage(props: AppPage) {
       header={
         <Header
           variant="h1"
-          description="Query your Opensearch datastore"
+          description="Add(Index) default products to your Opensearch datastore"
           actions={<Button iconName="settings" variant="icon" />}>
-          Keyword Search
+          Lexical Search
         </Header>
       }
     >

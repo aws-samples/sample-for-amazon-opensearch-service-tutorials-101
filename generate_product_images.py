@@ -91,7 +91,8 @@ def main():
             try:
                 # Generate the image
                 image = generate_image_with_bedrock(prompt)
-                
+                # resize the image to 320x320
+                image = image.resize((320, 320))
                 # Save the image
                 image_path = os.path.join(data_folder, file_name)
                 save_image(image, image_path)

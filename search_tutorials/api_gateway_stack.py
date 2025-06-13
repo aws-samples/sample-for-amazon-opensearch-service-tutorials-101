@@ -57,8 +57,7 @@ class APIGWStack(NestedStack):
                 require_lowercase=True,
                 require_uppercase=True,
                 require_symbols=True,
-            ),
-            advanced_security_mode=_cognito.AdvancedSecurityMode.ENFORCED,
+            )
         )
 
         # for the user pool created above create a application client
@@ -102,11 +101,11 @@ class APIGWStack(NestedStack):
 
         rest_endpoint_url = f"https://{rest_api.rest_api_id}.execute-api.{region}.amazonaws.com/{env_name}"
 
-        opensearch_index_lambda = _lambda.Function.from_function_arn(
-            self, f"{env_name}_opnsrch_indx_lmbda", function_arn=index_func_arn
+        opensearch_index_lambda = _lambda.Function.from_function_attributes(
+            self, f"{env_name}_opnsrch_indx_lmbda", function_arn=index_func_arn, same_environment=True
         )
-        opensearch_search_lambda = _lambda.Function.from_function_arn(
-            self, f"{env_name}_opnsrch_srch_lmbda", function_arn=search_func_arn
+        opensearch_search_lambda = _lambda.Function.from_function_attributes(
+            self, f"{env_name}_opnsrch_srch_lmbda", function_arn=search_func_arn, same_environment=True
         )
 
         namespace = rest_api.root.add_resource("proxy")
@@ -137,6 +136,22 @@ class APIGWStack(NestedStack):
             authorizer=cognito_authorizer,
         )
 
+        vectorize_index = rest_api.root.add_resource("vectorize-index")
+        vectorize_index.add_method(
+            "POST",
+            _apigw.LambdaIntegration(opensearch_index_lambda),
+            authorization_type=_apigw.AuthorizationType.COGNITO,
+            authorization_scopes=None,
+            authorizer=cognito_authorizer,
+        )
+
+        vectorize_index.add_method(
+            "DELETE",
+            _apigw.LambdaIntegration(opensearch_index_lambda),
+            authorization_type=_apigw.AuthorizationType.COGNITO,
+            authorization_scopes=None,
+            authorizer=cognito_authorizer,
+        )
         # Add presigned URL endpoint
         presigned_url = rest_api.root.add_resource("presigned-url")
         presigned_url.add_method(
@@ -199,6 +214,26 @@ class APIGWStack(NestedStack):
             source_account=account_id,
         )
 
+        _lambda.CfnPermission(
+            self,
+            f"PVectorizeAllowLambdaInvoke",
+            action="lambda:InvokeFunction",
+            function_name=opensearch_index_lambda.function_name,
+            principal="apigateway.amazonaws.com",
+            source_arn=f"arn:aws:execute-api:{region}:{account_id}:{rest_api.rest_api_id}/*/POST/vectorize-index",
+            source_account=account_id,
+        )
+
+        _lambda.CfnPermission(
+            self,
+            f"DVectorizeAllowLambdaInvoke",
+            action="lambda:InvokeFunction",
+            function_name=opensearch_index_lambda.function_name,
+            principal="apigateway.amazonaws.com",
+            source_arn=f"arn:aws:execute-api:{region}:{account_id}:{rest_api.rest_api_id}/*/DELETE/vectorize-index",
+            source_account=account_id,
+        )
+
         search = rest_api.root.add_resource("search")
         search.add_method(
             "POST",
@@ -212,6 +247,8 @@ class APIGWStack(NestedStack):
         self.add_cors_options(search)
         self.add_cors_options(presigned_url)
         self.add_cors_options(index_custom_doc)
+        self.add_cors_options(vectorize_index)
+        
 
         ecr_ui_stack = ECRUIStack(
             self,
@@ -284,6 +321,31 @@ class APIGWStack(NestedStack):
             "AwsSolutions-COG4",
             "OPTIONS should not be blocked by authentication else the UI wont load",
         )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-COG3",
+            "Advanced security mode is off for this PoC due to changes in user pool feature plans",
+        )
+        
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-COG2",
+            "MFA is off for this PoC",
+        )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-IAM5",
+            "Not Implemented. BasicExecution role for a Lambda function allowing it to push logs to cloudwatch",
+        )
+        
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-L1",
+            "Not Implemented. Already on Python 3_12",
+        )
+
         self.stack_suppressor(
             self,
             "AwsSolutions-IAM4",

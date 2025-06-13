@@ -25,9 +25,12 @@ awsauth = AWS4Auth(
     session_token=credentials.token,
 )
 INDEX_NAME = getenv("INDEX_NAME", "products")
-
+VECTOR_INDEX_NAME_ON_DISK = getenv("VECTOR_INDEX_NAME_ON_DISK", "products_vectorized_on_disk")
+VECTOR_INDEX_NAME_IN_MEMORY = getenv("VECTOR_INDEX_NAME_IN_MEMORY", "products_vectorized_in_memory")
+MODEL_ID = getenv("MODEL_ID", "cohere.embed-english-v3")
 # Initialize S3 client
 s3_client = boto3.client('s3', region_name=REGION)
+bedrock_client = boto3.client('bedrock-runtime', region_name=REGION)
 ops_client = OpenSearch(
     hosts=[{"host": ENDPOINT, "port": 443}],
     http_auth=awsauth,
@@ -38,6 +41,41 @@ ops_client = OpenSearch(
 )
 
 
+def get_embedding(text):
+    """
+    Gets embedding for text using Cohere model via Bedrock.
+    
+    Args:
+        text (str): The text to generate embeddings for
+        
+    Returns:
+        list: The embedding vector
+        
+    Raises:
+        Exception: If there's an error getting the embedding
+    """
+    try:
+        body = json.dumps({
+            "texts": [text],
+            "input_type": "search_query",
+            "truncate": "END",
+            "embedding_types": ["float"]
+        })
+        
+        response = bedrock_client.invoke_model(
+            modelId=MODEL_ID,
+            accept='application/json',
+            contentType='application/json',
+            body=body
+        )
+        
+        response_body = json.loads(response.get('body').read())
+        return response_body['embeddings']['float'][0]
+    except Exception as e:
+        LOG.error(f"Error getting embedding: {str(e)}")
+        raise e
+
+
 def search_products(event):
     """
     Searches for products in OpenSearch based on different search criteria.
@@ -46,13 +84,14 @@ def search_products(event):
         event (dict): The Lambda event object containing the search parameters in the body
                      Expected body format:
                      {
-                         "type": str,          # Type of search (multi_match, wildcard_match, match, prefix_match, range_filter, complex_search)
-                         "attribute_name": str, # Field name to search in
-                         "attribute_value": str/int, # Value to search for
+                         "type": str,          # Type of search (multi_match, wildcard_match, match, prefix_match, range_filter, complex_search, vector_search)
+                         "attribute_name": str, # Field name to search in, not mandatory for vector_search
+                         "attribute_value": str/int, # Value to search for , is required for vector_search too
                          "fields": list,       # Required for multi_match, list of fields with boost values
                          "case_insensitive": bool, # Optional for wildcard_match
                          "minimum_should_match": str/int, # Required for match query
                          "operator": str,      # Required for range_filter (gt, gte, lt, lte)
+                         
                          # Complex search parameters
                          "search_value": str,  # Main search term
                          "search_type": str,   # Type of complex search (combined, any, exact)
@@ -71,10 +110,10 @@ def search_products(event):
               Success format: {"success": True, "result": search_results, "statusCode": "200"}
               Failure format: {"success": False, "errorMessage": error_msg, "statusCode": error_code}
     """
-
+    
     if "body" in event:
         body = json.loads(event["body"])
-        
+        is_vector_search = False
         # Handle complex search
         if body["type"] == "complex_search":
             search_value = body.get("search_value", "")
@@ -330,10 +369,46 @@ def search_products(event):
                     "range": {attribute_name: {body["operator"]: int(attribute_value)}}
                 }
             }
+        
+        # Handle vector search
+        if body["type"] == "vector_search":
+            is_vector_search = True
+            try:
+                # Get embedding for the search text
+                search_text = body["attribute_value"]
+                vector_embedding = get_embedding(search_text)
+                search_body = {
+                    "size": 100,
+                    "_source": {
+                        "excludes": ["vector_embedding"]
+                    },
+                    "query": {
+                        "knn": {
+                            "vector_embedding": {"vector": vector_embedding, "k": 100}
+                        }
+                    }
+                }
+                if body["mode"] == "on_disk":
+                    response = ops_client.search(index=VECTOR_INDEX_NAME_ON_DISK, body=search_body)
+                elif body["mode"] == "in_memory":
+                    response = ops_client.search(index=VECTOR_INDEX_NAME_IN_MEMORY, body=search_body)
+                else:
+                    return failure_response("Invalid request, mode should be on_disk or in_memory")
+                try:
+                    if 'hits' in response:
+                        response = add_presigned_urls_to_results(response)
+                except Exception as e:
+                    LOG.error(f"Error adding presigned URLs to search results: {e}")
+                return success_response(response)
+            except Exception as e:
+                LOG.error(f"Error in vector search: {str(e)}")
+                return failure_response(f"Error in vector search: {str(e)}")
+        
         else:
             search_body = {"query": {"match_all": {}}}
-
-        response = ops_client.search(index=INDEX_NAME, body=search_body)
+        
+        if body["type"] != "vector_search":
+            response = ops_client.search(index=INDEX_NAME, body=search_body)
         # Add presigned URLs to search results before returning
         try:
             if 'hits' in response:
@@ -348,7 +423,7 @@ def failure_response(error_message, statusCode="500"):
     return {"success": False, "errorMessage": error_message, "statusCode": statusCode}
 
 
-def generate_presigned_url(file_name, expiration=3600):
+def generate_presigned_url(object_key, expiration=3600):
     """
     Generate a presigned URL for an S3 object
     
@@ -361,9 +436,6 @@ def generate_presigned_url(file_name, expiration=3600):
             LOG.error("S3_BUCKET_NAME environment variable is not set")
             return None
             
-        # Assuming images are stored in an 'images/' prefix
-        object_key = f"images/{file_name}"
-        
         response = s3_client.generate_presigned_url('get_object',
                                                    Params={'Bucket': S3_BUCKET_NAME,
                                                            'Key': object_key},
@@ -380,11 +452,14 @@ def add_presigned_urls_to_results(search_results):
     :param search_results: OpenSearch search results
     :return: Modified search results with presigned URLs
     """
+    s3_path = f"images/"
+    
     if 'hits' in search_results and 'hits' in search_results['hits']:
         for hit in search_results['hits']['hits']:
             if '_source' in hit and 'file_name' in hit['_source']:
                 file_name = hit['_source']['file_name']
-                presigned_url = generate_presigned_url(file_name)
+                object_key = f"{s3_path}{file_name}"
+                presigned_url = generate_presigned_url(object_key)
                 if presigned_url:
                     hit['_source']['image_url'] = presigned_url
     
