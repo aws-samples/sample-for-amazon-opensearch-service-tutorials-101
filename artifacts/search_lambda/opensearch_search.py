@@ -17,6 +17,7 @@ ENDPOINT = getenv("OPENSEARCH_HOST", "default")
 SERVICE = "es"  # aoss for Amazon Opensearch serverless
 REGION = getenv("AWS_REGION", "us-east-1")
 S3_BUCKET_NAME = getenv("S3_BUCKET_NAME")
+SEARCH_PIPELINE_NAME = getenv("SEARCH_PIPELINE_NAME", "oss_srch_pipeline")
 awsauth = AWS4Auth(
     credentials.access_key,
     credentials.secret_key,
@@ -296,6 +297,7 @@ def search_products(event):
                 multi_match_fields.append(f'{field["field"]}^{field["boost"]}')
             # perform multi-match query
             search_body = {
+                "size": 100,
                 "query": {
                     "multi_match": {
                         "query": attribute_value,
@@ -310,6 +312,7 @@ def search_products(event):
             if "case_insensitive" in body:
                 case_insensitive = bool(body["case_insensitive"])
             search_body = {
+                "size": 100,
                 "query": {
                     "wildcard": {
                         attribute_name: {
@@ -330,6 +333,7 @@ def search_products(event):
                         "400",
                     )
                 search_body = {
+                    "size": 100,
                     "query": {
                         "match": {
                             attribute_name: {
@@ -341,14 +345,16 @@ def search_products(event):
                 }
             else:
                 search_body = {
+                    "size": 100,
                     "query": {"match": {attribute_name: {"query": attribute_value}}}
                 }
         elif body["type"] == "prefix_match":
 
             if attribute_value == "":
-                search_body = {"query": {"match_all": {}}}
+                search_body = {"size": 100, "query": {"match_all": {}}}
             else:
                 search_body = {
+                    "size": 100,
                     "query": {
                         "match_phrase_prefix": {
                             attribute_name: {
@@ -365,14 +371,14 @@ def search_products(event):
                     "Invalid request, operator should be of type string", "400"
                 )
             search_body = {
+                "size": 100,
                 "query": {
                     "range": {attribute_name: {body["operator"]: int(attribute_value)}}
                 }
             }
         
         # Handle vector search
-        if body["type"] == "vector_search":
-            is_vector_search = True
+        elif body["type"] == "vector_search":
             try:
                 # Get embedding for the search text
                 search_text = body["attribute_value"]
@@ -388,27 +394,52 @@ def search_products(event):
                         }
                     }
                 }
-                if body["mode"] == "on_disk":
-                    response = ops_client.search(index=VECTOR_INDEX_NAME_ON_DISK, body=search_body)
-                elif body["mode"] == "in_memory":
-                    response = ops_client.search(index=VECTOR_INDEX_NAME_IN_MEMORY, body=search_body)
-                else:
-                    return failure_response("Invalid request, mode should be on_disk or in_memory")
-                try:
-                    if 'hits' in response:
-                        response = add_presigned_urls_to_results(response)
-                except Exception as e:
-                    LOG.error(f"Error adding presigned URLs to search results: {e}")
-                return success_response(response)
             except Exception as e:
                 LOG.error(f"Error in vector search: {str(e)}")
                 return failure_response(f"Error in vector search: {str(e)}")
-        
+                
+        elif body["type"] == "hybrid_search":
+            search_text = body["attribute_value"]
+            vector_embedding = get_embedding(search_text)
+            search_body = {
+                "size": 100,
+                "_source": {
+                    "excludes": "vector_embedding"
+                },
+                "query": {
+                    "hybrid": {
+                        "queries": [
+                            {
+                                "multi_match": {
+                                    "query": search_text,
+                                    "fields": ["title", "description"],
+                                    "type": "best_fields"
+                                }
+                            },
+                            {
+                                "knn": {
+                                    "vector_embedding": {"vector": vector_embedding, "k": 100}
+                                }
+                            }
+                        ]
+                    }
+                },
+                "search_pipeline" : SEARCH_PIPELINE_NAME
+            }
+            
         else:
-            search_body = {"query": {"match_all": {}}}
+            search_body = {"size": 100, "query": {"match_all": {}}}
         
-        if body["type"] != "vector_search":
+        if body["type"] not in ["vector_search", "hybrid_search"]:
             response = ops_client.search(index=INDEX_NAME, body=search_body)
+        else:
+            if body["mode"] == "on_disk":
+                response = ops_client.search(index=VECTOR_INDEX_NAME_ON_DISK, body=search_body)
+            elif body["mode"] == "in_memory":
+                response = ops_client.search(index=VECTOR_INDEX_NAME_IN_MEMORY, body=search_body)
+            else:
+                return failure_response("Invalid request, mode should be on_disk or in_memory")
+                
         # Add presigned URLs to search results before returning
         try:
             if 'hits' in response:
@@ -513,3 +544,7 @@ def handler(event, context):
         except Exception as e:
             LOG.exception(f"error=error_processing_api, api={api_path} , error={e}")
             return respond(failure_response(f"system_exception: {e}"), None)
+
+
+
+print(get_embedding("Pink Shoes"))

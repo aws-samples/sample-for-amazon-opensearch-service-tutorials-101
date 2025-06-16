@@ -18,6 +18,7 @@ import FuzzySearchPage from "./pages/keyword-fuzzy-search-page";
 import AggregationsPage from "./pages/keyword-aggregations-page";
 import VectorSearchPage from "./pages/vector-search-page";
 import VectorIndexPage from "./pages/vector-index-page";
+import VectorHybridSearchPage from "./pages/vector-hybrid-search-page";
 
 export default function App() {
   const [activeHref, setActiveHref] = useState("#/");
@@ -122,8 +123,9 @@ export default function App() {
             {
               type: "section-group", title: "Semantic Search",
               items: [
-                { type: "link", text: "Vector Index Products", href: "#/vector-index" },
-                { type: "link", text: "Vector Search", href: "#/semantic-search/vector-search" }
+                { type: "link", text: "Vector Index Products", href: "#/semantic-search/vector-index" },
+                { type: "link", text: "Vector Search", href: "#/semantic-search/vector-search" },
+                { type: "link", text: "Hybrid Search", href: "#/semantic-search/vector-hybrid-search" }
               ]
             }
             // { type: "link", text: "Opensearch Dashboard", href: "#/opensearch-dashboard" }
@@ -145,7 +147,8 @@ export default function App() {
               <Route path="/keyword-search/fuzzy-search" element={<FuzzySearchPage setAppData={setAppData} />} />
               <Route path="/keyword-search/aggregations" element={<AggregationsPage setAppData={setAppData} />} />
               <Route path="/semantic-search/vector-search" element={<VectorSearchPage setAppData={setAppData} />} />
-              <Route path="/vector-index" element={<VectorIndexPage setAppData={setAppData} />} />
+              <Route path="/semantic-search/vector-hybrid-search" element={<VectorHybridSearchPage setAppData={setAppData} />} />
+              <Route path="/semantic-search/vector-index" element={<VectorIndexPage setAppData={setAppData} />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>

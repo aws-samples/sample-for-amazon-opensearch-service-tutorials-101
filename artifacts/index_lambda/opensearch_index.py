@@ -17,6 +17,7 @@ ENDPOINT = getenv("OPENSEARCH_HOST", "default")
 SERVICE = "es"  # aoss for Amazon Opensearch serverless
 REGION = getenv("AWS_REGION", "us-east-1")
 S3_BUCKET = getenv("S3_BUCKET_NAME", "default")
+SEARCH_PIPELINE_NAME = getenv("SEARCH_PIPELINE_NAME", "oss_srch_pipeline")
 awsauth = AWS4Auth(
     credentials.access_key,
     credentials.secret_key,
@@ -136,7 +137,9 @@ def bulk_index_documents(documents):
         bulk_data.append(
             {"index": {"_index": INDEX_NAME, "_id": f"{uuid.uuid4().hex}"}}
         )
-
+        #remove vector_embedding from doc before indexing
+        if 'vector_embedding' in doc:
+            del doc['vector_embedding']
         bulk_data.append(doc)
         # Process in batches of 500
         if len(bulk_data) >= 1000:
@@ -217,6 +220,34 @@ def delete_index(event):
     return success_response("Index deleted successfully")
 
 
+def search_nlp():
+    try:
+        post_processor_search_pipleline = {
+            "description": "Post processor for hybrid search",
+            "phase_results_processors": [ {
+                "normalization-processor": {
+                    "normalization": {
+                        "technique": "min_max"
+                    },
+                        "combination": {
+                            "technique": "arithmetic_mean",
+                            "parameters": {
+                                "weights": [0.3,0.7]
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+        headers = {'Content-Type': 'application/json'}
+        response = requests.put(f"https://{ENDPOINT}/_search/pipeline/{SEARCH_PIPELINE_NAME}", auth=awsauth, json=post_processor_search_pipleline,
+                     headers=headers, verify=False)
+        LOG.info(f"method=search_nlp, message={SEARCH_PIPELINE_NAME} created, response={response.text}")
+        return success_response(f"Post processor search pipeline {SEARCH_PIPELINE_NAME} created successfully")
+    except Exception as e:
+        LOG.error(f"method=search_nlp, error={e}")
+        return failure_response(f'Error creating post processor search pipeline. {e}')
+
 def create_vector_index_on_disk_mode():
     """
     Creates the OpenSearch index for vectorized products if it doesn't exist.
@@ -263,7 +294,7 @@ def create_vector_index_on_disk_mode():
                         "dimension": 1024,
                         "data_type": "float",
                         "mode": "on_disk",
-                        "compression_level": "16x", # default is 32x
+                        "compression_level": "32x", # default is 32x
                         "method": {
                             "name":"hnsw",
                             "engine":"faiss",
@@ -385,13 +416,22 @@ def vectorize_and_index_products(event):
         
         if not product_list:
             return failure_response("No products to index")
-            
+        
+        LOG.info("method=vectorize_and_index_products, creating search pipeline")
+        res=search_nlp()
+        if not res['success']:
+            return failure_response(res['errorMessage'])
+        
         # Create vector index with on-disk and in-memory modes
         LOG.info("method=vectorize_and_index_products, creating vector index with on-disk")
-        create_vector_index_on_disk_mode()
+        res=create_vector_index_on_disk_mode()
+        if not res['success'] and "already exists" not in res['errorMessage']:
+            return failure_response(res['errorMessage'])
 
         LOG.info("method=vectorize_and_index_products, creating vector index with in-memory")
-        create_vector_index_in_memory_mode()
+        res=create_vector_index_in_memory_mode()
+        if not res['success'] and "already exists" not in res['errorMessage']:
+            return failure_response(res['errorMessage'])
 
         LOG.info("method=vectorize_and_index_products, vectorizing and indexing products")
     

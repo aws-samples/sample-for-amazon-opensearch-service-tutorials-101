@@ -23,7 +23,7 @@ import { AppPage } from "../common/types";
 import config from "../config.json";
 import { AppContext } from "../common/context";
 
-function VectorSearchPage(props: AppPage) {
+function VectorHybridSearchPage(props: AppPage) {
   const appData = useContext(AppContext);
   const [searchValue, setSearchValue] = useState("");
   const [items, setItems] = useState([]);
@@ -97,13 +97,13 @@ function VectorSearchPage(props: AppPage) {
     const token = appData.userinfo.tokens.idToken.toString();
 
     const disk_queryBody = {
-      type: "vector_search",
+      type: "hybrid_search",
       attribute_value: searchValue,
       attribute_name: "vector_embedding", // this fieldname is unused, we by default search on vector_embedding field
       mode: "on_disk" 
     };
     const in_memory_queryBody = {
-      type: "vector_search",
+      type: "hybrid_search",
       attribute_value: searchValue,
       attribute_name: "vector_embedding", // this fieldname is unused, we by default search on vector_embedding field
       mode: "in_memory" 
@@ -194,9 +194,9 @@ function VectorSearchPage(props: AppPage) {
       header={
         <Header
           variant="h1"
-          description="Search for semantically similar products"
+          description="Search for products using hybrid search"
           actions={<Button iconName="settings" variant="icon" />}>
-          Semantic Search
+          Hybrid Search
         </Header>
       }
     >
@@ -212,7 +212,7 @@ function VectorSearchPage(props: AppPage) {
           </Alert>
         )}
 
-        <ExpandableSection headerText="Guide to Semantic Search">
+        <ExpandableSection headerText="Guide to Hybrid Search">
           <HelpPanel
             footer={
               <div>
@@ -222,85 +222,94 @@ function VectorSearchPage(props: AppPage) {
                 </h3>
                 <ul>
                   <li>
-                    <a href="https://docs.opensearch.org/docs/latest/vector-search/ai-search/semantic-search/">Semantic Search Documentation</a>
+                    <a href="https://docs.opensearch.org/docs/latest/vector-search/ai-search/hybrid-search/index/">Link to documentation</a>
                   </li>
-                  <li>
-                  <a href="https://docs.opensearch.org/docs/latest/vector-search/optimizing-storage/disk-based-vector-search/">On-Disk Mode Documentation</a>
-                  </li>
-                  <li>
-                  <a href="https://opensearch.org/blog/reduce-cost-with-disk-based-vector-search/">On-Disk Mode Blog-1</a>
-                  </li>
-                  <li><a href="https://aws.amazon.com/blogs/big-data/opensearch-vector-engine-is-now-disk-optimized-for-low-cost-accurate-vector-search/">On-Disk Mode Blog-2</a></li>
                 </ul>
               </div>
             }
           >
             <div>
               <p>
-                <b>Semantic search</b> leverages embedding models to understand the context and intent of queries, going beyond simple keyword matching. It works by converting text into dense vectors (lists of floating-point numbers) that capture semantic meaning.
-                The user query is converted into a vector using an embedding model (Cohere embed-english-v3) on Amazon Bedrock and searched against the vector index.
-
-                In our example we compare the performance of two modes of searching the vector index.
-                <ul>
-                  <li><b>On-Disk Mode</b> is used to search the vector index on the disk. It is slower than <b>In-Memory Mode</b> because it works in two phases. First it searches the compressed in-memory index for candidates. Then it retrieves full-precision vectors from disk to re-score results.</li>
-                  <li><b>In-Memory Mode</b> is used to search the vector index in memory. It is faster than <b>On-Disk Mode</b> as the KNN graph resides in memory.</li>
-                </ul>
-
-                <b>On-Disk Mode</b> is a relatively new feature in Opensearch released in version 2.17. The on-disk memory mode in OpenSearch provides a memory-efficient approach for vector search operations, making vector search accessible in low-memory environments.
-                
-                <h4>Benefits of On-Disk Memory Mode</h4>
-                <ul>
-                  <li><b>Cost Reduction</b>: Reduces operational costs by up to 67-83% compared to memory mode</li>
-                  <li><b>Memory Efficiency</b>: Decreases memory requirements by 97% through vector compression</li>
-                  <li><b>High Quality</b>: Maintains strong recall (typically 93-99%) despite compression</li>
-                  <li><b>Reasonable Latency</b>: Performs searches in low hundreds of milliseconds (P90 ≈ 100-200ms)</li>
-                  <li>Scalability: Makes working with billions of vectors economically viable</li>
-                </ul>
-                <b> How it works </b>
-                <ol>
-                  <li>Vector Compression: Converts 32-bit full-precision vectors to binary vectors (1-bit per dimension) store in memory and full vectors are stored on disk</li>
-                  <li>Two-Phase Search: First searches the compressed in-memory index for candidates. Then retrieves full-precision vectors from disk to re-score results.</li>
-                  <li>Default Compression: 32x compression (97% smaller than full-precision)</li>
-                </ol>
+                <b>Hybrid search</b> combines keyword and semantic search to improve search relevance.
+                To implement hybrid search, you need to set up a search pipeline that runs at search time. The search pipeline intercepts search results at an intermediate stage and applies processing to normalize and combine document scores.
+                In our example the user query is converted into a vector using an embedding model (Cohere embed-english-v3) on Amazon Bedrock and searched against the vector index.
+                The results are then combined with the lexical search results in a post processor search pipeline.
               </p>
-              <p>
-                <b>In our example</b>, let's search for "Dark footwear for gents and compare the performance of On-Disk Mode and In-Memory Mode"
-              </p>
-             
-
               <h4>Prerequisites</h4>
               <ul>
                 <li>Access to Cohere embed English v3 model on Amazon Bedrock</li>
                 <li><a href="#/semantic-search/vector-index">Index your documents</a> into the vector index first</li>
               </ul>
               <p>
-                <b>In our example</b>, let's search for "Pink shoes for women under 12000"
+                <b>In our example</b>, let's search for "Dark footwear for gents". The query looks as follows:
               </p>
               <pre>
                   {JSON.stringify({
+                    "size": 100,
+                    "_source": {
+                      "excludes": "vector_embedding"
+                    },
                     "query": {
-                        "knn": {
-                            "field": "vector_embedding",
-                            "vector": ["0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ..."],
-                            "k": 10,
+                    "hybrid": {
+                      "queries": [
+                        {
+                          "multi_match": {
+                            "query": "Pink shoes for women",
+                            "fields": ["title", "description"]
+                          }
+                        },
+                        {
+                          "knn": {
+                            "vector_embedding": {"vector": ["0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 ..."], "k": 100}
+                          }
                         }
+                      ]
                     }
+                  },
+                  "search_pipeline": "oss_srch_pipeline",
                   }, null, 2)}
               </pre>
+
+              <p>Notice the <b>oss_srch_pipeline</b> in the search pipeline parameter in the query above. We created this pipeline during the indexing phase. The post processor is used to normalize and combine document scores for text and KNN searches.</p>
+              <p>Below is how the post processor looks like:</p>
+              <pre>
+                {JSON.stringify({
+                  "description": "Post processor for hybrid search",
+                  "phase_results_processors": [
+                    {
+                      "normalization-processor": {
+                        "normalization": {
+                          "technique": "min_max"
+                        },
+                        "combination": {
+                          "technique": "arithmetic_mean",
+                          "parameters": {
+                            "weights": [0.3, 0.7]
+                          }
+                        }
+                      }}]
+
+                }, null, 2)}
+              </pre>
+              <p>There are two kinds of processors available for Hybrid searches</p>
+              <ul>
+                <li><b>Normalization processor</b>: Normalizes the scores of the results from the vector search and lexical search.</li>
+                <li><b>Score ranker processor</b>: A rank-based processor that uses reciprocal rank fusion algorithm to combine different query clauses to produce the final ranked list of search results.</li>
+              </ul>
+
               <h4>Key Parameters</h4>
               <ul>
                 <li><b>k</b>: Number of nearest neighbors to return (recommend starting with 100)</li>
               </ul>
               <h4>Best Practices</h4>
               <ul>
-                <li>Use text chunking for longer documents</li>
-                <li>Enable k-NN on the indexwith "index.knn": true in the index settings</li>
-                <li>Choose the appropriate engine (e.g., "lucene", "faiss", "hnsw")</li>
-                <li>Choose the appropriate distance metric (e.g., "cosine", "euclidean", "l2", "inner_product")</li>
-                <li>Exclude embedding fields from search responses using _source.excludes for better performance</li>
-                <li>Optimize k value in neural queries based on your use case (default k=100)</li>
-                <li>Consider combining with keyword search for hybrid approaches</li>
-                <li>Use the explain feature for debugging and optimization</li>
+                <li>Choose the appropriate normalization technique (e.g., min_max) based on your search requirements</li>
+                <li>Select a suitable combination technique (e.g., arithmetic_mean) for your use case</li>
+                <li>Adjust weights in the weights array to balance the importance of different query clauses (e.g., [0.3, 0.7])</li>
+                <li>Balance neural queries with traditional match or term queries based on your content</li>
+                <li>Exclude large embedding fields from _source in search responses for better performance</li>
+                <li>Explore pagination options like search_after for large result sets</li>
+                <li>Use the hybrid search explain feature for debugging and optimization</li>
               </ul>
             </div>
           </HelpPanel>
@@ -466,4 +475,4 @@ function VectorSearchPage(props: AppPage) {
   );
 }
 
-export default withAuthenticator(VectorSearchPage); 
+export default withAuthenticator(VectorHybridSearchPage); 

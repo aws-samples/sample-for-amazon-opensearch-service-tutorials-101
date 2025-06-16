@@ -66,7 +66,7 @@ function VectorIndexPage(props: AppPage) {
           handle_notifications("Product catalog vector index deletion failed: " + result.errorMessage, "error");
         }
       } catch (err) {
-        handle_notifications("Product catalog vector index deletion failed", "error");
+        handle_notifications("Product catalog vector index deletion failed: " + err, "error");
         console.error(err);
       }
   }
@@ -93,7 +93,8 @@ function VectorIndexPage(props: AppPage) {
           handle_notifications(resp.errorMessage || "Failed to index products", "error");
         }
       } else {
-        handle_notifications("Failed to index products", "error");
+        const error_resp = await response.json();
+        handle_notifications("Failed to index products: " + error_resp["errorMessage"], "error");
       }
     } catch (error) {
       handle_notifications("Error during indexing: " + error, "error");
