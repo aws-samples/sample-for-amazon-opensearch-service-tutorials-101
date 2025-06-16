@@ -129,7 +129,7 @@ function VectorIndexPage(props: AppPage) {
           </Alert>
         )}
 
-        <ExpandableSection headerText="Guide to Vector Indexing">
+        <ExpandableSection headerText="Guide to Vector Indexing (In-Memory and On-Disk)">
           <HelpPanel
             footer={
               <div>
@@ -139,7 +139,16 @@ function VectorIndexPage(props: AppPage) {
                 </h3>
                 <ul>
                   <li>
-                    <a href="https://docs.opensearch.org/docs/latest/vector-search/ai-search/semantic-search/">Link to documentation</a>
+                    <a href="https://docs.opensearch.org/docs/latest/vector-search/ai-search/semantic-search/">Semantic Search Documentation</a>
+                  </li>
+                  <li>
+                    <a href="https://docs.opensearch.org/docs/latest/vector-search/optimizing-storage/disk-based-vector-search/">On-Disk Mode Documentation</a>
+                  </li>
+                  <li>
+                    <a href="https://opensearch.org/blog/reduce-cost-with-disk-based-vector-search/">On-Disk Mode Blog-1</a>
+                  </li>
+                  <li>
+                    <a href="https://aws.amazon.com/blogs/big-data/opensearch-vector-engine-is-now-disk-optimized-for-low-cost-accurate-vector-search/">On-Disk Mode Blog-2</a>
                   </li>
                 </ul>
               </div>
@@ -149,6 +158,11 @@ function VectorIndexPage(props: AppPage) {
               <p>
                 <b>Vector indexing</b> converts your product data into vector embeddings using the Cohere embed-english-v3 model on Amazon Bedrock. 
                 These embeddings capture the semantic meaning of your product descriptions, enabling semantic search capabilities.
+                In our example we've created two vector indexes. One lives in memory and the other on disk.
+                <ul>
+                  <li><b>In-Memory Mode</b> is used to search the vector index in memory. It is faster than <b>On-Disk Mode</b> as the KNN graph resides in memory.</li>
+                  <li><b>On-Disk Mode</b> is used to search the vector index on the disk. It is slower than <b>In-Memory Mode</b> because it works in two phases. First it searches the compressed in-memory index for candidates. Then it retrieves full-precision vectors from disk to re-score results.</li>
+                </ul>
               </p>
               <h4>Process</h4>
               <ol>

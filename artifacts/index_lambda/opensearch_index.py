@@ -232,7 +232,7 @@ def search_nlp():
                         "combination": {
                             "technique": "arithmetic_mean",
                             "parameters": {
-                                "weights": [0.3,0.7]
+                                "weights": [0.7,0.3]
                             }
                         }
                     }

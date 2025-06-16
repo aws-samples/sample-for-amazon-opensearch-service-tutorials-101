@@ -412,8 +412,8 @@ def search_products(event):
                             {
                                 "multi_match": {
                                     "query": search_text,
-                                    "fields": ["title", "description"],
-                                    "type": "best_fields"
+                                    "fields": ["title^2", "description^2", "category", "color"],
+                                    "type": "phrase_prefix"
                                 }
                             },
                             {
