@@ -106,28 +106,32 @@ def generate_cohere_embeddings():
     products_file_temp = "artifacts/index_lambda/products_content_temp.jsonl"
     # Read the products data
     product_list = read_jsonl_file(products_file)
-
+    processed_products = []
     # Process products in batches
-    batch_size = 30  # Smaller batch size due to embedding API calls
+    batch_size = 90  # Smaller batch size due to embedding API calls
     for i in range(0, len(product_list), batch_size):
         batch = product_list[i:i + batch_size]
-            
+        batch_products = []
         for product in batch:
+            if "vector_embedding" in product:
+                batch_products.append(product)
+                continue
             # Combine relevant fields
             combined_text = f"{product.get('title', '')}, Category: {product.get('category', '')}, Description: {product.get('description', '')}"
             # Get embedding
             vector_embedding = get_embedding(combined_text)
             product['vector_embedding'] = vector_embedding
+            batch_products.append(product)
             print(f"Generated embedding for {product.get('title', '')}")
+        processed_products.extend(batch_products)
         
-        # save the product to the products_content_vectors.jsonl file
-            # create the temp file if it doesn't exist
-        if not os.path.exists(products_file_temp):
+        # Dump batch to file
+        if i == 0:
             with open(products_file_temp, "w") as json_file:
-                json.dump(product_list, json_file)
+                json.dump(processed_products, json_file)
         else:
             with open(products_file_temp, "a") as json_file:
-                json.dump(product, json_file)
+                json.dump(batch_products, json_file)
 
             
     
@@ -171,6 +175,61 @@ def generate_images_for_products():
         else:
             print(f"Skipping product due to missing data: {product}")
 
+def generate_product_name_from_title():
+    """Extract product name from title using Amazon Bedrock."""
+    products_file = "artifacts/index_lambda/products_content.jsonl"
+    products_file_temp = "artifacts/index_lambda/products_content_temp.jsonl"
+    
+    products = read_jsonl_file(products_file)
+    batch_size = 30
+    processed_products = []
+    
+    for i in range(0, len(products), batch_size):
+        batch = products[i:i + batch_size]
+        batch_products = []
+        
+        for product in batch:
+            title = product.get("title", "")
+            prompt = f"""Given the product title: "{title}", extract only the main product type.
+            Choose from: shoes, bag, apparel, accessories, innerwear. If the title is not clear return "other"
+            Return only the product type, nothing else."""
+            
+            conversation = [
+                {
+                    "role": "user",
+                    "content": [{"text": prompt}]
+                }
+            ]
+            
+            response = bedrock_client.converse(
+                modelId='amazon.nova-lite-v1:0',
+                messages=conversation,
+                inferenceConfig={"maxTokens": 10, "temperature": 0.1},
+            )
+            
+            product_name = response["output"]["message"]["content"][0]["text"].strip().lower()
+            product["product_name"] = product_name
+            batch_products.append(product)
+        
+        processed_products.extend(batch_products)
+        
+        # Dump batch to file
+        if i == 0:
+            with open(products_file_temp, "w") as json_file:
+                json.dump(processed_products, json_file)
+        else:
+            with open(products_file_temp, "a") as json_file:
+                json.dump(batch_products, json_file)
+        
+        print(f"Processed batch {i//batch_size + 1} of {(len(products) + batch_size - 1)//batch_size}")
+
 if __name__ == "__main__":
     #generate_images_for_products()
     generate_cohere_embeddings()
+
+    #product_name should be extracted from the title, for example it could be shoes, bag, apparel, accessories, innerwear only
+    # write the entire json including product_name to a products_content_temp.jsonl file
+    # invoke the nova-lite-v1 model to generate the product_name
+    #generate_product_name_from_title()
+
+

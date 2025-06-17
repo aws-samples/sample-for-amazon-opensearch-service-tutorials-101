@@ -400,6 +400,35 @@ def search_products(event):
                 
         elif body["type"] == "hybrid_search":
             search_text = body["attribute_value"]
+            # identify category and color from search text by calling Amazon Bedrock
+            # category can be men, women, kids, unisex
+            # color can be red, blue, green, yellow, orange, purple, pink, brown, black, white, gray, silver, gold, etc.
+            product_filters = identify_category_color_product_name(search_text)
+            category_match=None
+            color_match=None
+            product_type_match=None
+            should_match_conditions=[]
+            if "category" in product_filters:
+                category_match = {
+                    "term": {
+                        "category": product_filters["category"]
+                    }
+                }
+                should_match_conditions.append(category_match)
+            if "color" in product_filters:
+                color_match = {
+                    "term": {
+                        "color": product_filters["color"]
+                    }
+                }
+                should_match_conditions.append(color_match)
+            if "product_type" in product_filters:
+                product_type_match = {
+                    "term": {
+                        "product_type": product_filters["product_type"]
+                    }
+                }
+                should_match_conditions.append(product_type_match)
             vector_embedding = get_embedding(search_text)
             search_body = {
                 "size": 100,
@@ -410,10 +439,9 @@ def search_products(event):
                     "hybrid": {
                         "queries": [
                             {
-                                "multi_match": {
-                                    "query": search_text,
-                                    "fields": ["title^2", "description^2", "category", "color"],
-                                    "type": "phrase_prefix"
+                                "bool": {
+                                    "should": should_match_conditions,
+                                    "minimum_should_match": 1
                                 }
                             },
                             {
@@ -422,6 +450,11 @@ def search_products(event):
                                 }
                             }
                         ]
+                    }
+                },
+                "post_filter": {
+                    "bool": {
+                        "must": should_match_conditions
                     }
                 },
                 "search_pipeline" : SEARCH_PIPELINE_NAME
@@ -473,7 +506,7 @@ def generate_presigned_url(object_key, expiration=3600):
                                                    ExpiresIn=expiration)
         return response
     except ClientError as e:
-        LOG.error(f"Error generating presigned URL for {file_name}: {e}")
+        LOG.error(f"Error generating presigned URL for {object_key}: {e}")
         return None
 
 def add_presigned_urls_to_results(search_results):
@@ -525,6 +558,56 @@ def respond(err, res=None):
     }
 
 
+def identify_category_color_product_name(search_text):
+    """
+    Identifies product category from search text using Amazon Bedrock.
+    
+    Args:
+        search_text (str): The search text to analyze
+        
+    Returns:
+        str: Identified category (men, women, kids, or unisex)
+    """
+    try:
+        prompt = f"""Given the search text: "{search_text}", 
+        identify the most likely product category, color and product_name.
+        Choose only from these categories: men, women, unisex.
+        Choose only from these colors: red, blue, green, yellow, multicolor, orange, purple, pink, brown, black, white, grey, white,coral, gold, teal, burgundy, silver.
+        Choose only from these product types: shoes, bag, apparel, accessories, innerwear, other
+        Return strictly a json with category,color, product_type
+        
+        
+        
+        """
+
+        conversation = [
+            {
+                "role": "user",
+                "content": [{"text": prompt}]
+            }
+        ]
+        
+        response = bedrock_client.converse(
+            modelId='amazon.nova-lite-v1:0',
+            messages=conversation,
+            inferenceConfig={"maxTokens": 50, "temperature": 0.1},
+        )
+        
+        product_filters = response["output"]["message"]["content"][0]["text"]
+        print(product_filters)
+        try:
+            if "{" in product_filters and "}" in product_filters:
+                product_filters = "{" + product_filters.split("{")[1].split("}")[0] + "}"
+            product_filters_json = json.loads(product_filters)
+            return product_filters_json
+        except Exception as e:
+            LOG.error(f"Error parsing product filters: {str(e)}")
+            return {}
+        
+    except Exception as e:
+        LOG.error(f"Error identifying category: {str(e)}")
+        return 'unisex'
+
 # write a hello world lambda function
 def handler(event, context):
     LOG.debug(
@@ -544,7 +627,3 @@ def handler(event, context):
         except Exception as e:
             LOG.exception(f"error=error_processing_api, api={api_path} , error={e}")
             return respond(failure_response(f"system_exception: {e}"), None)
-
-
-
-print(get_embedding("Pink Shoes"))

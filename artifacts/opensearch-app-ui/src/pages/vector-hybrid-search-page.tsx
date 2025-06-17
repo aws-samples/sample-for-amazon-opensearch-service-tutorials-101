@@ -238,6 +238,7 @@ function VectorHybridSearchPage(props: AppPage) {
               <h4>Prerequisites</h4>
               <ul>
                 <li>Access to Cohere embed English v3 model on Amazon Bedrock</li>
+                <li>Access to Amazon Nova Lite(amazon.nova-lite-v1:0) model on Amazon Bedrock</li>
                 <li><a href="#/semantic-search/vector-index">Index your documents</a> into the vector index first</li>
               </ul>
               <p>

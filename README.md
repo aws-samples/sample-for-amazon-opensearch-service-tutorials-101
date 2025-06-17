@@ -15,6 +15,8 @@ The application provides examples of different search functionalities using Amaz
   - Range Filter
   - Compound Queries
   - Aggregations
+- Semantic Search (Disk vs In-Memory modes)
+- Hybrid Search (Disk vs In-Memory modes)
 - Document Indexing
 
 ## Architecture
