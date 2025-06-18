@@ -90,7 +90,7 @@ class AppRunnerHostingStack(Stack):
             self,
             f"apprunner-url-{env_name}",
             value=app_runner_ui.attr_service_url,
-            export_name="ServiceUrl",
+            export_name=f"ServiceUrl-{env_name}",
         )
 
     def suppressor(self, constructs, id, reason):
