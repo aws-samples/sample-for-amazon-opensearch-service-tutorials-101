@@ -166,6 +166,10 @@ function KeywordRangePage(props: AppPage) {
                 <li>gt: Greater than</li>
                 <li>lt: Less than</li>
               </ul>
+              <h4>Prerequisites</h4>
+              <ul>
+                <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+              </ul>
 
               <h3>Examples</h3>
               <h4>Numeric Range</h4>

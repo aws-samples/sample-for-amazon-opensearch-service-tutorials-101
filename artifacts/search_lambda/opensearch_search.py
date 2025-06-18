@@ -17,6 +17,7 @@ ENDPOINT = getenv("OPENSEARCH_HOST", "default")
 SERVICE = "es"  # aoss for Amazon Opensearch serverless
 REGION = getenv("AWS_REGION", "us-east-1")
 S3_BUCKET_NAME = getenv("S3_BUCKET_NAME")
+SEARCH_PIPELINE_NAME = getenv("SEARCH_PIPELINE_NAME", "oss_srch_pipeline")
 awsauth = AWS4Auth(
     credentials.access_key,
     credentials.secret_key,
@@ -25,9 +26,12 @@ awsauth = AWS4Auth(
     session_token=credentials.token,
 )
 INDEX_NAME = getenv("INDEX_NAME", "products")
-
+VECTOR_INDEX_NAME_ON_DISK = getenv("VECTOR_INDEX_NAME_ON_DISK", "products_vectorized_on_disk")
+VECTOR_INDEX_NAME_IN_MEMORY = getenv("VECTOR_INDEX_NAME_IN_MEMORY", "products_vectorized_in_memory")
+MODEL_ID = getenv("MODEL_ID", "cohere.embed-english-v3")
 # Initialize S3 client
 s3_client = boto3.client('s3', region_name=REGION)
+bedrock_client = boto3.client('bedrock-runtime', region_name=REGION)
 ops_client = OpenSearch(
     hosts=[{"host": ENDPOINT, "port": 443}],
     http_auth=awsauth,
@@ -38,6 +42,41 @@ ops_client = OpenSearch(
 )
 
 
+def get_embedding(text):
+    """
+    Gets embedding for text using Cohere model via Bedrock.
+    
+    Args:
+        text (str): The text to generate embeddings for
+        
+    Returns:
+        list: The embedding vector
+        
+    Raises:
+        Exception: If there's an error getting the embedding
+    """
+    try:
+        body = json.dumps({
+            "texts": [text],
+            "input_type": "search_query",
+            "truncate": "END",
+            "embedding_types": ["float"]
+        })
+        
+        response = bedrock_client.invoke_model(
+            modelId=MODEL_ID,
+            accept='application/json',
+            contentType='application/json',
+            body=body
+        )
+        
+        response_body = json.loads(response.get('body').read())
+        return response_body['embeddings']['float'][0]
+    except Exception as e:
+        LOG.error(f"Error getting embedding: {str(e)}")
+        raise e
+
+
 def search_products(event):
     """
     Searches for products in OpenSearch based on different search criteria.
@@ -46,13 +85,14 @@ def search_products(event):
         event (dict): The Lambda event object containing the search parameters in the body
                      Expected body format:
                      {
-                         "type": str,          # Type of search (multi_match, wildcard_match, match, prefix_match, range_filter, complex_search)
-                         "attribute_name": str, # Field name to search in
-                         "attribute_value": str/int, # Value to search for
+                         "type": str,          # Type of search (multi_match, wildcard_match, match, prefix_match, range_filter, complex_search, vector_search)
+                         "attribute_name": str, # Field name to search in, not mandatory for vector_search
+                         "attribute_value": str/int, # Value to search for , is required for vector_search too
                          "fields": list,       # Required for multi_match, list of fields with boost values
                          "case_insensitive": bool, # Optional for wildcard_match
                          "minimum_should_match": str/int, # Required for match query
                          "operator": str,      # Required for range_filter (gt, gte, lt, lte)
+                         
                          # Complex search parameters
                          "search_value": str,  # Main search term
                          "search_type": str,   # Type of complex search (combined, any, exact)
@@ -71,10 +111,10 @@ def search_products(event):
               Success format: {"success": True, "result": search_results, "statusCode": "200"}
               Failure format: {"success": False, "errorMessage": error_msg, "statusCode": error_code}
     """
-
+    
     if "body" in event:
         body = json.loads(event["body"])
-        
+        is_vector_search = False
         # Handle complex search
         if body["type"] == "complex_search":
             search_value = body.get("search_value", "")
@@ -257,6 +297,7 @@ def search_products(event):
                 multi_match_fields.append(f'{field["field"]}^{field["boost"]}')
             # perform multi-match query
             search_body = {
+                "size": 100,
                 "query": {
                     "multi_match": {
                         "query": attribute_value,
@@ -271,6 +312,7 @@ def search_products(event):
             if "case_insensitive" in body:
                 case_insensitive = bool(body["case_insensitive"])
             search_body = {
+                "size": 100,
                 "query": {
                     "wildcard": {
                         attribute_name: {
@@ -291,6 +333,7 @@ def search_products(event):
                         "400",
                     )
                 search_body = {
+                    "size": 100,
                     "query": {
                         "match": {
                             attribute_name: {
@@ -302,14 +345,16 @@ def search_products(event):
                 }
             else:
                 search_body = {
+                    "size": 100,
                     "query": {"match": {attribute_name: {"query": attribute_value}}}
                 }
         elif body["type"] == "prefix_match":
 
             if attribute_value == "":
-                search_body = {"query": {"match_all": {}}}
+                search_body = {"size": 100, "query": {"match_all": {}}}
             else:
                 search_body = {
+                    "size": 100,
                     "query": {
                         "match_phrase_prefix": {
                             attribute_name: {
@@ -326,14 +371,108 @@ def search_products(event):
                     "Invalid request, operator should be of type string", "400"
                 )
             search_body = {
+                "size": 100,
                 "query": {
                     "range": {attribute_name: {body["operator"]: int(attribute_value)}}
                 }
             }
+        
+        # Handle vector search
+        elif body["type"] == "vector_search":
+            try:
+                # Get embedding for the search text
+                search_text = body["attribute_value"]
+                vector_embedding = get_embedding(search_text)
+                search_body = {
+                    "size": 100,
+                    "_source": {
+                        "excludes": ["vector_embedding"]
+                    },
+                    "query": {
+                        "knn": {
+                            "vector_embedding": {"vector": vector_embedding, "k": 100}
+                        }
+                    }
+                }
+            except Exception as e:
+                LOG.error(f"Error in vector search: {str(e)}")
+                return failure_response(f"Error in vector search: {str(e)}")
+                
+        elif body["type"] == "hybrid_search":
+            search_text = body["attribute_value"]
+            # identify category and color from search text by calling Amazon Bedrock
+            # category can be men, women, kids, unisex
+            # color can be red, blue, green, yellow, orange, purple, pink, brown, black, white, gray, silver, gold, etc.
+            product_filters = identify_category_color_product_name(search_text)
+            category_match=None
+            color_match=None
+            product_type_match=None
+            should_match_conditions=[]
+            if "category" in product_filters:
+                category_match = {
+                    "term": {
+                        "category": product_filters["category"]
+                    }
+                }
+                should_match_conditions.append(category_match)
+            if "color" in product_filters:
+                color_match = {
+                    "term": {
+                        "color": product_filters["color"]
+                    }
+                }
+                should_match_conditions.append(color_match)
+            if "product_type" in product_filters:
+                product_type_match = {
+                    "term": {
+                        "product_type": product_filters["product_type"]
+                    }
+                }
+                should_match_conditions.append(product_type_match)
+            vector_embedding = get_embedding(search_text)
+            search_body = {
+                "size": 100,
+                "_source": {
+                    "excludes": "vector_embedding"
+                },
+                "query": {
+                    "hybrid": {
+                        "queries": [
+                            {
+                                "bool": {
+                                    "should": should_match_conditions,
+                                    "minimum_should_match": 1
+                                }
+                            },
+                            {
+                                "knn": {
+                                    "vector_embedding": {"vector": vector_embedding, "k": 100}
+                                }
+                            }
+                        ]
+                    }
+                },
+                "post_filter": {
+                    "bool": {
+                        "must": should_match_conditions
+                    }
+                },
+                "search_pipeline" : SEARCH_PIPELINE_NAME
+            }
+            
         else:
-            search_body = {"query": {"match_all": {}}}
-
-        response = ops_client.search(index=INDEX_NAME, body=search_body)
+            search_body = {"size": 100, "query": {"match_all": {}}}
+        
+        if body["type"] not in ["vector_search", "hybrid_search"]:
+            response = ops_client.search(index=INDEX_NAME, body=search_body)
+        else:
+            if body["mode"] == "on_disk":
+                response = ops_client.search(index=VECTOR_INDEX_NAME_ON_DISK, body=search_body)
+            elif body["mode"] == "in_memory":
+                response = ops_client.search(index=VECTOR_INDEX_NAME_IN_MEMORY, body=search_body)
+            else:
+                return failure_response("Invalid request, mode should be on_disk or in_memory")
+                
         # Add presigned URLs to search results before returning
         try:
             if 'hits' in response:
@@ -348,7 +487,7 @@ def failure_response(error_message, statusCode="500"):
     return {"success": False, "errorMessage": error_message, "statusCode": statusCode}
 
 
-def generate_presigned_url(file_name, expiration=3600):
+def generate_presigned_url(object_key, expiration=3600):
     """
     Generate a presigned URL for an S3 object
     
@@ -361,16 +500,13 @@ def generate_presigned_url(file_name, expiration=3600):
             LOG.error("S3_BUCKET_NAME environment variable is not set")
             return None
             
-        # Assuming images are stored in an 'images/' prefix
-        object_key = f"images/{file_name}"
-        
         response = s3_client.generate_presigned_url('get_object',
                                                    Params={'Bucket': S3_BUCKET_NAME,
                                                            'Key': object_key},
                                                    ExpiresIn=expiration)
         return response
     except ClientError as e:
-        LOG.error(f"Error generating presigned URL for {file_name}: {e}")
+        LOG.error(f"Error generating presigned URL for {object_key}: {e}")
         return None
 
 def add_presigned_urls_to_results(search_results):
@@ -380,11 +516,14 @@ def add_presigned_urls_to_results(search_results):
     :param search_results: OpenSearch search results
     :return: Modified search results with presigned URLs
     """
+    s3_path = f"images/"
+    
     if 'hits' in search_results and 'hits' in search_results['hits']:
         for hit in search_results['hits']['hits']:
             if '_source' in hit and 'file_name' in hit['_source']:
                 file_name = hit['_source']['file_name']
-                presigned_url = generate_presigned_url(file_name)
+                object_key = f"{s3_path}{file_name}"
+                presigned_url = generate_presigned_url(object_key)
                 if presigned_url:
                     hit['_source']['image_url'] = presigned_url
     
@@ -418,6 +557,56 @@ def respond(err, res=None):
         },
     }
 
+
+def identify_category_color_product_name(search_text):
+    """
+    Identifies product category from search text using Amazon Bedrock.
+    
+    Args:
+        search_text (str): The search text to analyze
+        
+    Returns:
+        str: Identified category (men, women, kids, or unisex)
+    """
+    try:
+        prompt = f"""Given the search text: "{search_text}", 
+        identify the most likely product category, color and product_name.
+        Choose only from these categories: men, women, unisex.
+        Choose only from these colors: red, blue, green, yellow, multicolor, orange, purple, pink, brown, black, white, grey, white,coral, gold, teal, burgundy, silver.
+        Choose only from these product types: shoes, bag, apparel, accessories, innerwear, other
+        Return strictly a json with category,color, product_type
+        
+        
+        
+        """
+
+        conversation = [
+            {
+                "role": "user",
+                "content": [{"text": prompt}]
+            }
+        ]
+        
+        response = bedrock_client.converse(
+            modelId='amazon.nova-lite-v1:0',
+            messages=conversation,
+            inferenceConfig={"maxTokens": 50, "temperature": 0.1},
+        )
+        
+        product_filters = response["output"]["message"]["content"][0]["text"]
+        print(product_filters)
+        try:
+            if "{" in product_filters and "}" in product_filters:
+                product_filters = "{" + product_filters.split("{")[1].split("}")[0] + "}"
+            product_filters_json = json.loads(product_filters)
+            return product_filters_json
+        except Exception as e:
+            LOG.error(f"Error parsing product filters: {str(e)}")
+            return {}
+        
+    except Exception as e:
+        LOG.error(f"Error identifying category: {str(e)}")
+        return 'unisex'
 
 # write a hello world lambda function
 def handler(event, context):

@@ -8,6 +8,7 @@ from aws_cdk import (
     aws_codebuild as _codebuild,
     aws_iam as _iam,
     aws_kms as _kms,
+    aws_s3 as _s3,
 )
 
 from constructs import Construct
@@ -45,9 +46,10 @@ class ECRUIStack(NestedStack):
         ecr_repo_ui = _ecr.Repository(
             self,
             ecr_repo_name,
+            empty_on_delete=True,
             repository_name=ecr_repo_name,
             removal_policy=_cdk.RemovalPolicy.DESTROY,
-            auto_delete_images=True,
+            
         )
 
         ecr_repo_ui.add_lifecycle_rule(
@@ -92,6 +94,10 @@ class ECRUIStack(NestedStack):
             self,
             f"opnsrch_ui_cntnr_{env_name}",
             project_name=f"opnsrchuicntnr{env_name}",
+            source=_codebuild.Source.s3(
+                bucket=_s3.Bucket.from_bucket_name(self, f"codebuild-{env_name}-{region}-{account_id}-input-bucket", f"codebuild-{env_name}-{region}-{account_id}-input-bucket"),
+                path="sample-for-amazon-opensearch-tutorials-101.zip"
+            ),
             description="Dockerized Opensearch tutorials UI ",
             build_spec=_codebuild.BuildSpec.from_object_to_yaml(build_spec_yml),
             environment=_codebuild.BuildEnvironment(

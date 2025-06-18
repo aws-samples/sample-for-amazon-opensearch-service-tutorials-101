@@ -217,6 +217,10 @@ function AggregationsPage(props: AppPage) {
                 <li><b>Bucket Aggregations:</b> Group documents into "buckets" based on criteria</li>
                 <li><b>Pipeline Aggregations:</b> Process the output of other aggregations</li>
               </ul>
+              <h4>Prerequisites</h4>
+              <ul>
+                <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+              </ul>
 
               <p>
                 <b>In our example</b>, let's explore product data with aggregations for insights about categories and prices: 

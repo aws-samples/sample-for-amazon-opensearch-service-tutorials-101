@@ -14,9 +14,9 @@ else
     infra_env=$1
 fi  
 
-if [ "$infra_env" != "dev" -a "$infra_env" != "qa" -a "$infra_env" != "sandbox" ]
+if [ "$infra_env" != "dev" -a "$infra_env" != "qa" -a "$infra_env" != "sandbox" -a "$infra_env" != "prod" ]
 then
-    echo "Environment name can only be dev or qa or sandbox. example 'sh installer.sh dev' "
+    echo "Environment name can only be dev, qa, sandbox or prod. example 'sh installer.sh dev' "
     exit 1
 fi
 
@@ -38,11 +38,11 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 18
-      python: 3.10
+      nodejs: 22
+      python: 3.12
     commands:
       - echo Installing dependencies...
-      - npm install -g aws-cdk@2.91.0
+      - npm install -g aws-cdk@2.1018.0
       - pip install -r requirements.txt
       
   build:

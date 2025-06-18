@@ -172,6 +172,10 @@ function FuzzySearchPage(props: AppPage) {
               <p>
                 <b>Fuzzy search</b> in OpenSearch helps you find documents even when search terms contain typos or misspellings. It works by finding terms similar to your search term within a specified edit distance (Damerau-Levenshtein distance), which counts character changes like replacements, insertions, deletions, and transpositions.
               </p>
+              <h4>Prerequisites</h4>
+              <ul>
+                <li><a href="#/index-documents">Index your documents</a> into OpenSearch first</li>
+              </ul>
               <p>
                 <b>In our example</b>, let's search for "HALET" (a misspelling of "HAMLET") in a collection of literary works. The fuzzy query will match documents containing "HAMLET" despite the spelling error:
               </p>

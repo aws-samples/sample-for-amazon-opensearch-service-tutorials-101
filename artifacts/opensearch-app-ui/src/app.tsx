@@ -16,6 +16,9 @@ import UploadProductPage from "./pages/upload-product-page";
 import ComplexSearchPage from "./pages/keyword-complex-search-page";
 import FuzzySearchPage from "./pages/keyword-fuzzy-search-page";
 import AggregationsPage from "./pages/keyword-aggregations-page";
+import VectorSearchPage from "./pages/vector-search-page";
+import VectorIndexPage from "./pages/vector-index-page";
+import VectorHybridSearchPage from "./pages/vector-hybrid-search-page";
 
 export default function App() {
   const [activeHref, setActiveHref] = useState("#/");
@@ -96,28 +99,33 @@ export default function App() {
           }}
           items={[
             {
-              type: "link-group", text: "Index Documents", href: "#",
+              type: "section-group", title: "Keyword Search",
               items: [
-                { type: "link", text: "Bulk Index Product Catalog", href: "#/index-documents" },
-                { type: "link", text: "Upload Custom Product", href: "#/upload-product" },
+                {type: "section", text: "Index Documents", items: [
+                  { type: "link", text: "Bulk Index Product Catalog", href: "#/index-documents" },
+                  { type: "link", text: "Upload Custom Product", href: "#/upload-product" },
+                ]},
+                {type: "section", text: "Keyword Search", defaultExpanded: false, items: [
+                  { type: "link", text: "Prefix Match", href: "#/keyword-search/prefix-match" },
+                  { type: "link", text: "Multi Match", href: "#/keyword-search/multi-match" },
+                  { type: "link", text: "Fuzzy Search", href: "#/keyword-search/fuzzy-search" },
+                  { type: "link", text: "Minimum Should Match", href: "#/keyword-search/minimum-should-match" },
+                  { type: "link", text: "Wildcard Match", href: "#/keyword-search/wildcard-match" },
+                  { type: "link", text: "Range Filter", href: "#/keyword-search/range-filter" }
+                ]},
+                {type: "section", text: "Advanced Lexical Search", defaultExpanded: false, items: [
+                  { type: "link", text: "Compound Queries", href: "#/keyword-search/complex-search" },
+                  { type: "link", text: "Aggregations", href: "#/keyword-search/aggregations" }
+                ]}
               ]
             },            
+            { type: "divider" },
             {
-              type: "link-group", text: "Keyword Search", href: "#",
+              type: "section-group", title: "Semantic Search",
               items: [
-                { type: "link", text: "Prefix Match", href: "#/keyword-search/prefix-match" },
-                { type: "link", text: "Multi Match", href: "#/keyword-search/multi-match" },
-                { type: "link", text: "Fuzzy Search", href: "#/keyword-search/fuzzy-search" },
-                { type: "link", text: "Minimum Should Match", href: "#/keyword-search/minimum-should-match" },
-                { type: "link", text: "Wildcard Match", href: "#/keyword-search/wildcard-match" },
-                { type: "link", text: "Range Filter", href: "#/keyword-search/range-filter" }
-              ]
-            },
-            {
-              type: "link-group", text: "Advanced Search", href: "#",
-              items: [
-                { type: "link", text: "Compound Queries", href: "#/keyword-search/complex-search" },
-                { type: "link", text: "Aggregations", href: "#/keyword-search/aggregations" }
+                { type: "link", text: "Vector Index Products", href: "#/semantic-search/vector-index" },
+                { type: "link", text: "Vector Search", href: "#/semantic-search/vector-search" },
+                { type: "link", text: "Hybrid Search", href: "#/semantic-search/vector-hybrid-search" }
               ]
             }
             // { type: "link", text: "Opensearch Dashboard", href: "#/opensearch-dashboard" }
@@ -138,6 +146,9 @@ export default function App() {
               <Route path="/keyword-search/complex-search" element={<ComplexSearchPage setAppData={setAppData} />} />
               <Route path="/keyword-search/fuzzy-search" element={<FuzzySearchPage setAppData={setAppData} />} />
               <Route path="/keyword-search/aggregations" element={<AggregationsPage setAppData={setAppData} />} />
+              <Route path="/semantic-search/vector-search" element={<VectorSearchPage setAppData={setAppData} />} />
+              <Route path="/semantic-search/vector-hybrid-search" element={<VectorHybridSearchPage setAppData={setAppData} />} />
+              <Route path="/semantic-search/vector-index" element={<VectorIndexPage setAppData={setAppData} />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>
