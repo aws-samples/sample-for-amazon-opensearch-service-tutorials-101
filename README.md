@@ -78,6 +78,10 @@ Note: triggering builder.sh directly runs the script in Cloudshell which could t
 9. To test out Keyword search functionality, first index some products on the Opensearch tutorial application. Every feature is also accompanied by a guide, best practices and links to the Opensearch documentation. You could also index a custom product.
    <img width="1424" alt="Opensearch-UI-tutorial" src="https://github.com/user-attachments/assets/10ad1c92-2781-4d6c-897d-33f69b4e86f2" />
 
+10. Updated features
+    <img width="1408" alt="lexical-semantic-search" src="https://github.com/user-attachments/assets/58337bc5-915e-4496-b86a-bc0f8f494d53" />
+
+
 
 
 **Note:** The builder script will:
