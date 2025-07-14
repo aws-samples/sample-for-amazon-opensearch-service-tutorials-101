@@ -2,7 +2,8 @@
 
 This project demonstrates various OpenSearch search capabilities through a web application built with [Cloudscape React](https://cloudscape.design/) and AWS services.
 
-## Blog link : https://aws.amazon.com/blogs/big-data/amazon-opensearch-service-101-create-your-first-search-application-with-opensearch/
+## Blog link
+* https://aws.amazon.com/blogs/big-data/amazon-opensearch-service-101-create-your-first-search-application-with-opensearch/
 
 ## Overview
 
