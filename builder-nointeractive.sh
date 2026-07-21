@@ -104,7 +104,7 @@ else
     exit 1
 fi
 
-echo "---Deploying Opensearch UI ECR image ---"
+echo "---Building and publishing Opensearch UI to S3 + CloudFront ---"
 project=opnsrchuicntnr"$infra_env"
 echo project: $project
 build_container=$(aws codebuild list-projects|grep -o $project'[^,"]*')
@@ -138,8 +138,7 @@ done
 
 if [ $status = "SUCCEEDED" ]
     then
-       echo "Host UI on AppRunner ..."
-       cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP ApprunnerHostingStack"$infra_env" --require-approval never
+       echo "UI built and published to S3 + CloudFront. The CloudFront URL is printed at the end of the UI build log."
     else
        echo "Exiting. UI Build did not succeed."
        exit 1

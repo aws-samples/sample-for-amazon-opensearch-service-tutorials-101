@@ -31,7 +31,7 @@ The application is built using:
 - Backend: AWS Lambda functions / API Gateway
 - Search: Amazon OpenSearch Service
 - Infrastructure: AWS CDK
-- Hosting: AWS App Runner
+- Hosting: Amazon S3 + Amazon CloudFront
 - Authentication: Amazon Cognito
 
 ## Prerequisites
@@ -72,7 +72,7 @@ Note: triggering builder.sh directly runs the script in Cloudshell which could t
 6. The deployment takes 30 minutes to create all resources. You can track its progress on Cloudformation
    <img width="1128" alt="Screenshot 2025-04-01 at 4 55 24 pm" src="https://github.com/user-attachments/assets/7d9df31b-47ba-4554-8730-69ec153dbe2a" />
 
-7. Once done, head to AppRunner to obtain the application url
+7. Once done, obtain the application url from the CloudFront distribution. The URL is printed at the end of the UI build log (CodeBuild project `opnsrchuicntnr<env>`) and is also available in the CloudFront console.
     <img width="1037" alt="Screenshot 2025-04-01 at 4 56 45 pm" src="https://github.com/user-attachments/assets/8f4de24f-08e6-42d0-ac7f-b0168d0552d1" />
 
 8. Get started by first creating your account on the Opensearch tutorial Application
@@ -90,8 +90,7 @@ Note: triggering builder.sh directly runs the script in Cloudshell which could t
 **Note:** The builder script will:
 - Deploy the Lambda Layer Stack
 - Build and deploy the OpenSearch Proxy Stack
-- Build and deploy the UI container
-- Deploy the App Runner hosting stack
+- Build the UI, publish it to S3 and serve it through CloudFront
 
 ## Environment Configuration
 
@@ -150,6 +149,6 @@ npm run dev
 Infrastructure is defined using AWS CDK in the `search_tutorials/` directory:
 - `lambda_layer_stack.py`: Lambda layers for dependencies
 - `opensearch_proxy_stack.py`: OpenSearch domain and Lambda functions
-- `apprunner_hosting_stack.py`: UI hosting configuration
+- `cloudfront_hosting_stack.py`: UI hosting configuration (S3 + CloudFront and the UI build/deploy CodeBuild project)
 
 - DeepWiki Docs : https://deepwiki.com/aws-samples/sample-for-amazon-opensearch-tutorials-101

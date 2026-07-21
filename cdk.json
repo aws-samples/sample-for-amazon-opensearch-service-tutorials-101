@@ -71,8 +71,7 @@
       "lambda_opensearch_sg_name": "dev-lambda-os-demo-sg",
       "ecr_repository_name": "dev-opensearch_tutorials",
       "opensearch-user-pool": "dev-search-tutorials-pool",
-      "opensearch-cognito": "dev-search-tutorials-cognito",
-      "apprunner_service_name": "dev-search-tutorials-apprunner"
+      "opensearch-cognito": "dev-search-tutorials-cognito"
     },
     "qa": {
       "opensearch_domain_name": "qa-opensearch-domain",
@@ -93,8 +92,7 @@
       "lambda_opensearch_sg_name": "qa-lambda-os-demo-sg",
       "ecr_repository_name": "qa-opensearch_tutorials",
       "opensearch-user-pool": "qa-search-tutorials-pool",
-      "opensearch-cognito": "qa-search-tutorials-cognito",
-      "apprunner_service_name": "qa-search-tutorials-apprunner"
+      "opensearch-cognito": "qa-search-tutorials-cognito"
     },
     "sandbox": {
       "opensearch_domain_name": "sandbox-opensearch-domain",
@@ -115,8 +113,7 @@
       "lambda_opensearch_sg_name": "sandbox-lambda-os-demo-sg",
       "ecr_repository_name": "sandbox-opensearch_tutorials",
       "opensearch-user-pool": "sandbox-search-tutorials-pool",
-      "opensearch-cognito": "sandbox-search-tutorials-cognito",
-      "apprunner_service_name": "sandbox-search-tutorials-apprunner"
+      "opensearch-cognito": "sandbox-search-tutorials-cognito"
     },
     "prod": {
       "opensearch_domain_name": "prod-opensearch-domain",
@@ -137,8 +134,7 @@
       "lambda_opensearch_sg_name": "prod-lambda-os-demo-sg",
       "ecr_repository_name": "prod-opensearch_tutorials",
       "opensearch-user-pool": "prod-search-tutorials-pool",
-      "opensearch-cognito": "prod-search-tutorials-cognito",
-      "apprunner_service_name": "prod-search-tutorials-apprunner"
+      "opensearch-cognito": "prod-search-tutorials-cognito"
     }
   }
 }

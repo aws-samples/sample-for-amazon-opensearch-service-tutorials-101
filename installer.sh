@@ -148,10 +148,10 @@ while true; do
     retry_count=$((retry_count + 1))
     
     
-    # Show AppRunner tip every 3 retries (3, 6, 9, etc.)
+    # Show CloudFront tip every 3 retries (3, 6, 9, etc.)
     if [ $((retry_count % 3)) -eq 0 ]; then
-      echo -e "${Green}TIP: Once deployment completes, you can find your application URL in AppRunner:${NC}"
-      echo -e "https://$deployment_region.console.aws.amazon.com/apprunner/home?region=$deployment_region#/services"
+      echo -e "${Green}TIP: Once deployment completes, your application URL (CloudFront) is printed at the end of the UI build log, and the distribution is also visible in the CloudFront console:${NC}"
+      echo -e "https://$deployment_region.console.aws.amazon.com/cloudfront/v4/home?region=$deployment_region#/distributions"
     fi
   fi
   
@@ -160,8 +160,8 @@ done
 
 if [ "$status" == "SUCCEEDED" ]; then
   echo -e "${Green}Deployment completed successfully!${NC}"
-  echo -e "${Green}You can access your application at the URL available in AppRunner:${NC}"
-  echo -e "https://$deployment_region.console.aws.amazon.com/apprunner/home?region=$deployment_region#/services"
+  echo -e "${Green}You can access your application at the CloudFront URL printed at the end of the UI build log. The distribution is also visible in the CloudFront console:${NC}"
+  echo -e "https://$deployment_region.console.aws.amazon.com/cloudfront/v4/home?region=$deployment_region#/distributions"
   exit 0
 else
   echo -e "${Red}Deployment failed!${NC}"

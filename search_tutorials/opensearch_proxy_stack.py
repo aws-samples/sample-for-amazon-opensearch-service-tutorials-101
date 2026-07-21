@@ -14,7 +14,6 @@ from constructs import Construct
 import cdk_nag as _cdk_nag
 
 from search_tutorials.api_gateway_stack import APIGWStack
-from search_tutorials.ecr_ui_stack import ECRUIStack
 from search_tutorials.lambda_layer_stack import LambdaLayerStack
 
 
@@ -77,6 +76,7 @@ class OpensearchProxyStack(Stack):
             domain_name=env_params["opensearch_domain_name"],
             node_to_node_encryption=True,
             enforce_https=True,
+            tls_security_policy=_opensearch.TLSSecurityPolicy.TLS_1_2,
             encryption_at_rest={"enabled": True},
             removal_policy=cdk.RemovalPolicy.DESTROY,
             capacity=_opensearch.CapacityConfig(
