@@ -14,10 +14,10 @@ digraph INFRA {
 (LambdaFunction)", shape =rectangle, fillcolor = "#B7E0FF" ];
   "APIGateway" [ label = "APIGateway
 (APIGateway)", shape =rectangle, fillcolor = "#E78F81" ];
-  "AppRunnerService" [ label = "AppRunnerService
-(AppRunnerService)", shape =rectangle, fillcolor = "#B7E0FF" ];
-  "ECRRepository" [ label = "ECRRepository
-(ECRRepository)", shape =cylinder, fillcolor = "#FFF5CD" ];
+  "CloudFrontDistribution" [ label = "CloudFrontDistribution
+(CloudFrontDistribution)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "UIBucket" [ label = "UIBucket
+(S3Bucket)", shape =cylinder, fillcolor = "#FFF5CD" ];
   "LambdaLayer" [ label = "LambdaLayer
 (LambdaLayer)", shape =rectangle, fillcolor = "#B7E0FF" ];
   "CodeBuildProject" [ label = "CodeBuildProject
@@ -33,6 +33,7 @@ digraph INFRA {
   "APIGateway" -> "OpensearchProxyLambda";
   "APIGateway" -> "OpensearchIndexLambda";
   "APIGateway" -> "OpensearchSearchLambda";
-  "AppRunnerService" -> "ECRRepository";
+  "CloudFrontDistribution" -> "UIBucket";
+  "CodeBuildProject" -> "UIBucket";
   "CodeBuildProject" -> "LambdaLayer";
 }

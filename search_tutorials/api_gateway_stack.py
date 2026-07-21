@@ -19,7 +19,7 @@ import cdk_nag as _cdk_nag
 from aws_cdk import CustomResource
 from aws_cdk import custom_resources as cr
 
-from search_tutorials.ecr_ui_stack import ECRUIStack
+from search_tutorials.cloudfront_hosting_stack import CloudFrontUIStack
 
 
 class APIGWStack(NestedStack):
@@ -250,14 +250,14 @@ class APIGWStack(NestedStack):
         self.add_cors_options(vectorize_index)
         
 
-        ecr_ui_stack = ECRUIStack(
+        cloudfront_ui_stack = CloudFrontUIStack(
             self,
-            f"ECRUI{env_name}Stack",
+            f"CloudFrontUI{env_name}Stack",
             user_pool_id,
             user_pool_client_id,
             rest_endpoint_url,
         )
-        self.tag_my_stack(ecr_ui_stack)
+        self.tag_my_stack(cloudfront_ui_stack)
         
                 # Create an S3 bucket
         s3_bucket = _s3.Bucket(
@@ -332,6 +332,12 @@ class APIGWStack(NestedStack):
             self,
             "AwsSolutions-COG2",
             "MFA is off for this PoC",
+        )
+
+        self.stack_suppressor(
+            self,
+            "AwsSolutions-COG8",
+            "Cognito plus tier is not required for this PoC",
         )
 
         self.stack_suppressor(

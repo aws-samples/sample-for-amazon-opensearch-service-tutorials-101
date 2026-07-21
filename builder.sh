@@ -137,8 +137,7 @@ done
 
 if [ $build_status = "SUCCEEDED" ]
     then
-       echo "Host UI on AppRunner ..."
-       cdk deploy -c environment_name=$infra_env -c current_timestamp=$CURRENT_UTC_TIMESTAMP ApprunnerHostingStack"$infra_env" --require-approval never
+       echo "UI built and published to S3 + CloudFront. The CloudFront URL is printed at the end of the UI build log."
     else
        echo "Exiting. Build did not succeed."
        exit 1

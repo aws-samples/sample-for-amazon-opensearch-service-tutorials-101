@@ -1,0 +1,30 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+      python: '3.12'
+    commands:
+      - pwd
+      - ls
+      - echo Printing variables $region $user_pool_id $client_id $site_bucket $distribution_id
+  build:
+    commands:
+      - echo Install JQ
+      - sudo apt-get update
+      - sudo apt-get install -y jq
+      - rm -rf artifacts/opensearch-app-ui/src/config.json
+      - jq -n --arg region "$region" --arg user_pool_id "$user_pool_id" --arg client_id "$client_id" --arg rest_endpoint_url "$rest_endpoint_url" '{ region:$region, userPoolId:$user_pool_id, clientId:$client_id, apiUrl:$rest_endpoint_url }' > artifacts/opensearch-app-ui/src/config.json
+      - echo Build started on `date`
+      - echo Building the UI ...
+      - cd artifacts/opensearch-app-ui/
+      - npm install
+      - npm run build
+      - echo Syncing static assets to S3 ...
+      - aws s3 sync dist/ "s3://$site_bucket/" --delete
+  post_build:
+    commands:
+      - echo Build completed on `date`
+      - echo Invalidating CloudFront cache ...
+      - aws cloudfront create-invalidation --distribution-id "$distribution_id" --paths "/*"
+      - echo "UI available at https://$(aws cloudfront get-distribution --id $distribution_id --query 'Distribution.DomainName' --output text)"
